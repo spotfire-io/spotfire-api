@@ -1,0 +1,40 @@
+{
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "https://opensource.org/licenses/apache2.0.php"
+    }
+  ],
+  "scripts": {
+    "prisma-deploy": "prisma deploy",
+    "prisma-generate": "prisma generate",
+    "start": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts",
+    "test": "jest",
+    "test-watch": "jest --watchAll"
+  },
+  "dependencies": {
+    "@reactivex/rxjs": "^6.4.0",
+    "apollo-server": "^2.4.8",
+    "bottleneck": "^2.17.1",
+    "dotenv": "^7.0.0",
+    "graphql": "^14.2.0",
+    "graphql-import": "^0.7.1",
+    "lodash": "^4.17.11",
+    "prisma": "^1.30.0-beta.6",
+    "spotify-web-api-node": "^4.0.0",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "@types/lodash": "^4.14.123",
+    "@types/node": "^11.12.2",
+    "@types/winston": "^2.4.4",
+    "jest": "^24.5.0",
+    "nodemon": "^1.18.10",
+    "ts-jest": "^24.0.1",
+    "ts-lint": "^4.5.1",
+    "ts-node": "^8.0.3",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.4.1"
+  }
+}

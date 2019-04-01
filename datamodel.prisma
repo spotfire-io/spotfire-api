@@ -1,0 +1,168 @@
+type Image {
+  url: String @id @unique
+  height: Int
+  width: Int
+}
+
+type User {
+  user_id: String! @id @unique
+  birthday: DateTime
+  country: String
+  display_name: String
+  email: String @unique
+  href: String @unique
+  product: String
+  uri: String @unique
+  images: [Image]
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+type Playlist {
+  playlist_id: String! @id @unique
+  description: String
+  href: String @unique
+  name: String
+  owner: User
+  uri: String @unique
+  public: Boolean
+  images: [Image]
+  snapshots: [PlaylistSnapshot]!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+type PlaylistSnapshot {
+  snapshot_id: String! @id @unique
+  playlist: Playlist
+  track_count: Int
+  playlist_tracks: [PlaylistTrack]!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+type PlaylistTrack {
+  snapshot_order_id: String! @id @unique
+  snapshot: PlaylistSnapshot
+  added_by: User
+  added_at: DateTime
+  is_local: Boolean
+  order: Int!
+  track: Track
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+type Market {
+  country_code: String! @id @unique
+}
+
+enum AlbumType {
+  ALBUM
+  SINGLE
+  COMPILATION
+}
+
+type Genre {
+  name: String! @id @unique
+}
+
+enum ReleaseDatePrecision {
+  YEAR
+  MONTH
+  DAY
+}
+
+type Followers {
+  total: Int!
+  href: String
+}
+
+type Artist {
+  artist_id: String! @id @unique
+  uri: String @unique
+  href: String @unique
+  genres: [Genre]!
+  followers: Followers
+  images: [Image]!
+  name: String
+  popularity: Int
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+type Album {
+  album_id: String! @id @unique
+  uri: String @unique
+  href: String @unique
+  album_type: AlbumType
+  artists: [Artist]!
+  available_markets: [Market]!
+  genres: [Genre]!
+  images: [Image]!
+  label: String
+  name: String
+  popularity: Int
+  release_date: DateTime
+  release_date_precision: ReleaseDatePrecision
+  tracks: [Track]!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+type Track {
+  track_id: String! @id @unique
+  uri: String @unique
+  href: String @unique
+  disc_number: Int
+  track_number: Int
+  duration_ms: Int
+  explicit: Boolean
+  name: String
+  popularity: Int
+  preview_url: String
+  album: Album
+  artists: [Artist]!
+  features: AudioFeatures
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+enum Mode {
+  MAJOR
+  MINOR
+}
+
+enum CamelotRing {
+  INNER
+  OUTER
+}
+
+type Key {
+  rootNoteIndex: Int
+  mode: Mode
+  camelotPosition: Int
+  camelotRing: CamelotRing
+  camelotCode: String
+}
+
+type AudioFeatures {
+  track_id: String! @id @unique
+  uri: String! @unique
+  track: Track
+  danceability: Float
+  energy: Float
+  root_note: Int
+  loudness: Float
+  mode: Mode
+  speechiness: Float
+  acousticness: Float
+  instrumentalness: Float
+  liveness: Float
+  valence: Float
+  tempo: Float
+  duration_ms: Int
+  time_signature: Int
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
