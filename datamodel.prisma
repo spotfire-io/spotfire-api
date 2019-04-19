@@ -1,11 +1,13 @@
 type Image {
-  url: String @id @unique
+  id: ID! @id @unique
+  url: String @unique
   height: Int
   width: Int
 }
 
 type User {
-  user_id: String! @id @unique
+  id: ID! @id @unique
+  user_id: String! @unique
   birthday: DateTime
   country: String
   display_name: String
@@ -14,47 +16,53 @@ type User {
   product: String
   uri: String @unique
   images: [Image]
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }
 
 type Playlist {
-  playlist_id: String! @id @unique
+  id: ID! @id @unique
+  playlist_id: String! @unique
+  latest_snapshot_id: String! @unique
   description: String
   href: String @unique
   name: String
-  owner: User
+  owner: User @relation(link: INLINE, name: "PlaylistOwner")
   uri: String @unique
   public: Boolean
   images: [Image]
-  snapshots: [PlaylistSnapshot]!
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  snapshots: [PlaylistSnapshot]! @relation(name: "PlaylistSnapshotToPlaylist")
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }
 
 type PlaylistSnapshot {
-  snapshot_id: String! @id @unique
-  playlist: Playlist
+  id: ID! @id @unique
+  snapshot_id: String! @unique
+  playlist: Playlist @relation(link: INLINE, name: "PlaylistSnapshotToPlaylist")
   track_count: Int
   playlist_tracks: [PlaylistTrack]!
-  updatedAt: DateTime!
-  createdAt: DateTime!
+    @relation(name: "PlaylistTrackToPlaylistSnapshot")
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }
 
 type PlaylistTrack {
-  snapshot_order_id: String! @id @unique
+  id: ID! @id @unique
   snapshot: PlaylistSnapshot
-  added_by: User
+    @relation(link: INLINE, name: "PlaylistTrackToPlaylistSnapshot")
+  added_by: User @relation(link: TABLE, name: "PlaylistTrackAddedByUser")
   added_at: DateTime
   is_local: Boolean
   order: Int!
   track: Track
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  updated_at: DateTime @updatedAt
+  created_at: DateTime @createdAt
 }
 
 type Market {
-  country_code: String! @id @unique
+  id: ID! @id @unique
+  country_code: String! @unique
 }
 
 enum AlbumType {
@@ -64,7 +72,8 @@ enum AlbumType {
 }
 
 type Genre {
-  name: String! @id @unique
+  id: ID! @id @unique
+  name: String! @unique
 }
 
 enum ReleaseDatePrecision {
@@ -73,26 +82,23 @@ enum ReleaseDatePrecision {
   DAY
 }
 
-type Followers {
-  total: Int!
-  href: String
-}
-
 type Artist {
-  artist_id: String! @id @unique
+  id: ID! @id @unique
+  artist_id: String! @unique
   uri: String @unique
   href: String @unique
   genres: [Genre]!
-  followers: Followers
+  followerCount: Int!
   images: [Image]!
   name: String
   popularity: Int
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }
 
 type Album {
-  album_id: String! @id @unique
+  id: ID! @id @unique
+  album_id: String! @unique
   uri: String @unique
   href: String @unique
   album_type: AlbumType
@@ -106,12 +112,13 @@ type Album {
   release_date: DateTime
   release_date_precision: ReleaseDatePrecision
   tracks: [Track]!
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }
 
 type Track {
-  track_id: String! @id @unique
+  id: ID! @id @unique
+  track_id: String! @unique
   uri: String @unique
   href: String @unique
   disc_number: Int
@@ -123,9 +130,9 @@ type Track {
   preview_url: String
   album: Album
   artists: [Artist]!
-  features: AudioFeatures
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  features: AudioFeatures @relation(name: "AudioFeaturesToTrack")
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }
 
 enum Mode {
@@ -139,17 +146,18 @@ enum CamelotRing {
 }
 
 type Key {
-  rootNoteIndex: Int
+  id: ID! @id @unique
+  root_note_index: Int
   mode: Mode
-  camelotPosition: Int
-  camelotRing: CamelotRing
-  camelotCode: String
+  camelot_position: Int
+  camelot_ring: CamelotRing
+  camelot_code: String
 }
 
 type AudioFeatures {
-  track_id: String! @id @unique
+  id: ID! @id @unique
   uri: String! @unique
-  track: Track
+  track: Track @relation(link: INLINE, name: "AudioFeaturesToTrack")
   danceability: Float
   energy: Float
   root_note: Int
@@ -163,6 +171,6 @@ type AudioFeatures {
   tempo: Float
   duration_ms: Int
   time_signature: Int
-  updatedAt: DateTime!
-  createdAt: DateTime!
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
 }

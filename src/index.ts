@@ -1,30 +1,76 @@
-import { ApolloServer, gql } from "apollo-server";
-import { importSchema } from "graphql-import";
+import * as path from "path";
+import { ApolloServer } from "apollo-server-express";
+import { makePrismaSchema, prismaObjectType } from "nexus-prisma";
+import { stringArg } from "nexus/dist";
+import express from "express";
+import passport from "passport";
 import SpotifyWebApi from "spotify-web-api-node";
-import { PlaylistPromise } from "./generated/prisma-client";
 
-const resolvers = {
-  Query: {
-    playlist: async (_, { uri }: { uri: string }) => {
-      const match = uri.match(
-        /user[:\/]([^:\/]*)[:\/]playlist[:\/](\w*)(\?si=(\w+))?/
-      );
-      if (match) {
-        const userId = match[1];
-        const playlistId = match[2];
-        const version = match[4];
-      } else {
-        return null;
-      }
-    }
+import { Prisma } from "./generated/prisma-client";
+import datamodelInfo from "./generated/nexus-prisma";
+
+import { Context } from "./utils";
+import { decodeJwt, auth0StrategyName, User } from "./auth";
+
+import { Query } from "./schema";
+
+require("dotenv-flow").config();
+
+const PORT = process.env.PORT || 4002;
+
+const prisma = new Prisma({
+  endpoint: process.env["PRISMA_ENDPOINT"] || "http://localhost:4466",
+  secret: process.env["PRISMA_SECRET"] || ""
+});
+
+const schema = makePrismaSchema({
+  types: [Query],
+
+  prisma: {
+    datamodelInfo,
+    client: prisma
+  },
+
+  outputs: {
+    schema: path.join(__dirname, "./generated/schema.graphql"),
+    typegen: path.join(__dirname, "./generated/nexus.ts")
   }
-};
+});
+
+const app = express();
 
 const server = new ApolloServer({
-  typeDefs: [importSchema("./src/schema.graphql")],
-  resolvers
+  schema,
+  context: ({ req }): Context => {
+    const user: User = req.user;
+    const context = { prisma };
+    if (user && user.spotifyAccessToken) {
+      const spotify = new SpotifyWebApi({
+        clientId: process.env.SPOTIFY_CLIENT_ID,
+        clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+      });
+      spotify.setAccessToken(user.spotifyAccessToken);
+      return {
+        spotify,
+        prisma
+      };
+    } else {
+      throw Error("Could not find spotify access token in request user");
+    }
+  }
 });
 
-server.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}`);
-});
+app.use(
+  server.graphqlPath,
+  passport.initialize(),
+  passport.session(),
+  decodeJwt,
+  passport.authenticate(auth0StrategyName)
+);
+server.applyMiddleware({ app });
+
+app.listen({ port: PORT }, () =>
+  console.log(
+    `🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`
+  )
+);

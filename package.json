@@ -6,35 +6,52 @@
     }
   ],
   "scripts": {
+    "build": "rimraf dist && tsc",
     "prisma-deploy": "prisma deploy",
+    "prisma-deploy-staging": "prisma deploy --env-file .env.staging",
     "prisma-generate": "prisma generate",
-    "start": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts",
+    "start": "ts-node-dev --no-notify --respawn --transpileOnly ./src/index.ts",
     "test": "jest",
     "test-watch": "jest --watchAll"
   },
   "dependencies": {
     "@reactivex/rxjs": "^6.4.0",
     "apollo-server": "^2.4.8",
+    "apollo-server-express": "^2.4.8",
+    "auth0": "^2.16.0",
     "bottleneck": "^2.17.1",
     "dotenv": "^7.0.0",
+    "dotenv-flow": "^0.3.0",
+    "express-jwt": "^5.3.1",
     "graphql": "^14.2.0",
     "graphql-import": "^0.7.1",
+    "jwks-rsa": "^1.4.0",
     "lodash": "^4.17.11",
-    "prisma": "^1.30.0-beta.6",
+    "nexus": "^0.11.6",
+    "nexus-prisma": "^0.3.5",
+    "passport": "^0.4.0",
+    "passport-custom": "^1.0.5",
+    "passport-jwt": "^4.0.0",
+    "prisma": "^1.31.1",
     "spotify-web-api-node": "^4.0.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {
+    "@types/auth0": "^2.9.10",
     "@types/jest": "^24.0.11",
     "@types/lodash": "^4.14.123",
     "@types/node": "^11.12.2",
+    "@types/passport": "^1.0.0",
+    "@types/passport-jwt": "^3.0.1",
     "@types/winston": "^2.4.4",
     "jest": "^24.5.0",
     "nodemon": "^1.18.10",
+    "rimraf": "^2.6.3",
     "ts-jest": "^24.0.1",
     "ts-lint": "^4.5.1",
     "ts-node": "^8.0.3",
+    "ts-node-dev": "^1.0.0-pre.32",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.4.1"
+    "typescript": "^3.4.3"
   }
 }

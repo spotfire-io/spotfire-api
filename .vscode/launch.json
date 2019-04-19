@@ -8,7 +8,8 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Program",
-      "program": "${workspaceFolder}/src/index.ts",
+      "program": "${workspaceFolder}/node_modules/.bin/ts-node",
+      "args": ["${workspaceFolder}/src/index.ts"],
       "outFiles": ["${workspaceFolder}/**/*.js"]
     },
     {

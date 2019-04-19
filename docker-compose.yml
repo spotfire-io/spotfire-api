@@ -1,8 +1,18 @@
 version: "3"
 services:
+  postgres:
+    image: postgres
+    restart: "no"
+    environment:
+      POSTGRES_USER: prisma
+      POSTGRES_PASSWORD: prisma
+    volumes:
+      - postgres:/var/lib/postgresql/data
   prisma:
-    image: prismagraphql/prisma:1.30-beta
-    restart: always
+    image: prismagraphql/prisma:1.31
+    restart: "no"
+    depends_on:
+      - postgres
     ports:
       - "4466:4466"
     environment:
@@ -20,13 +30,5 @@ services:
             rawAccess: true
             port: 5432
             migrations: true
-  postgres:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: prisma
-      POSTGRES_PASSWORD: prisma
-    volumes:
-      - postgres:/var/lib/postgresql/data
 volumes:
   postgres:

@@ -1,0 +1,7 @@
+graph TD
+  GetPlaylist[Get Playlist: /v1/playlist/$playlistId]--$playlistId, $offset: $playlist.tracks.total / 100 -> floor-->GetPlaylistTracks[Get a Playlist's Tracks: /v1/playlist/$playlistId/tracks?offset=$offset]
+  GetPlaylistTracks--$track.artists -> flatMap -> unique-->GetArtist[Get Several Artists: /v1/artists/$artistIds -> buffer 50]
+  GetPlaylistTracks--$track.album -> unique -->GetAlbum[Get Several Albums: /v1/albums/$albumIds -> buffer 20]
+  GetAlbum--$album.artists.id -> flatMap -> unique -->GetArtist
+  GetPlaylistTracks--$trackIds-->GetAudioFeatures[Get Audio Features: /v1/audio-features/$trackIds -> buffer 100]
+  GetPlaylistTracks--$trackIds-->GetAudioAnalysis[Get Audio Analysis: /v1/audio-analysis/$trackId]
