@@ -4,6 +4,8 @@ RUN apk add --no-cache bash
 RUN mkdir -p /usr/app
 WORKDIR /usr/app
 
+# To resolve this: https://stackoverflow.com/questions/52196518/could-not-get-uid-gid-when-building-node-docker
+RUN npm config set unsafe-perm true
 RUN npm i -g yarn
 
 COPY tsconfig.json /usr/app/tsconfig.json
