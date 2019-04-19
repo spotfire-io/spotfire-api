@@ -1,0 +1,17 @@
+# This deploys both the Prisma Server and an Attached Postgres
+environments:
+  dev: {}
+  staging: {}
+  production: {}
+
+releases:
+  - name: spotfire-prisma
+    namespace: spotfire
+    labels:
+      layer: data
+    chart: stable/prisma
+    version: 1.2.0
+    values:
+    - ../values/prisma/values.yaml
+    secrets:
+    - ../values/prisma/secrets.yaml

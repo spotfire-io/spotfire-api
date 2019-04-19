@@ -1,0 +1,28 @@
+environments:
+  dev: {}
+  staging: {}
+  production: {}
+
+# Helmfile repos at the top level are simply ignored per:
+# https://github.com/roboll/helmfile/pull/356
+repositories:
+#   - name: coreos
+#     url: https://s3-eu-west-1.amazonaws.com/coreos-charts/stable/
+  - name: incubator
+    url: https://kubernetes-charts-incubator.storage.googleapis.com/
+  - name: stable
+    url: https://kubernetes-charts.storage.googleapis.com
+
+helmDefaults:
+  kubeContext: k8s-aws-auth
+  args: []
+  force: false
+  recreatePods: false
+  timeout: 600
+  verify: false
+  wait: true
+
+# ** does not seem to be accepted, and * does not recurse more than one level of
+# directory
+helmfiles:
+  - charts/helmfiles.d/*.yaml
