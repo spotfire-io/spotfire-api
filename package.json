@@ -6,7 +6,7 @@
     }
   ],
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "rimraf dist && prisma generate && tsc",
     "prisma-deploy": "prisma deploy",
     "prisma-deploy-staging": "prisma deploy --env-file .env.staging",
     "prisma-generate": "prisma generate",

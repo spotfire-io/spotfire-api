@@ -30,5 +30,12 @@ services:
             rawAccess: true
             port: 5432
             migrations: true
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+      - .env.development
 volumes:
   postgres:
