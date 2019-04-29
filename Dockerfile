@@ -1,24 +1,31 @@
-FROM node:11.13.0-alpine
+FROM node:10
 
-RUN apk add --no-cache bash
-RUN mkdir -p /usr/app
+# Specify the PATH for node_modules to get picked up correctly
+ENV PATH /usr/app:/usr/app/node_modules/.bin:$PATH
+ENV NODE_PATH=/usr/app:/usr/app/node_modules
+ENV PORT 4001
+
 WORKDIR /usr/app
 
-# To resolve this: https://stackoverflow.com/questions/52196518/could-not-get-uid-gid-when-building-node-docker
-RUN npm config set unsafe-perm true
-RUN npm i -g yarn
+COPY \
+    package.json \
+    yarn.lock \
+    /usr/app/
 
-COPY tsconfig.json /usr/app/tsconfig.json
-COPY package.json /usr/app/package.json
-COPY yarn.lock /usr/app/yarn.lock
 RUN yarn install
 
-COPY prisma.yml /usr/app/prisma.yml
-COPY datamodel.prisma /usr/app/datamodel.prisma
-COPY src/ /usr/app/src/
+COPY prisma.yml \
+    datamodel.prisma \
+    tsconfig.json \
+    /usr/app/
+
+COPY src /usr/app/src
 COPY typings /usr/app/typings
+
 RUN yarn build
 
-EXPOSE 4000
+EXPOSE ${PORT}
 
-CMD yarn start
+CMD node /usr/app/dist/index.js
+
+# ENTRYPOINT ["node", "/usr/app/dist/index.js"]

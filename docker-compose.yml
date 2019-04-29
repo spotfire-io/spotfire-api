@@ -16,6 +16,7 @@ services:
     ports:
       - "4466:4466"
     environment:
+      JAVA_OPTS: "-Xmx1g"
       PRISMA_CONFIG: |
         port: 4466
         # prototype: true
@@ -30,12 +31,15 @@ services:
             rawAccess: true
             port: 5432
             migrations: true
-  api:
-    build: .
-    ports:
-      - "4000:4000"
-    env_file:
-      - .env
-      - .env.development
+  # api:
+  #   build: .
+  #   ports:
+  #     - "4001:4001"
+  #   restart: "no"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     PORT: 4001
+  #     PRISMA_ENDPOINT: http://prisma:4466
 volumes:
   postgres:

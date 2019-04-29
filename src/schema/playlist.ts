@@ -1,30 +1,17 @@
-import SpotifyWebApi from "spotify-web-api-node";
-import * as Prisma from "../generated/prisma-client";
-import _ from "lodash";
+import { prismaObjectType } from "nexus-prisma";
+import { Context } from "../utils";
 
-export class PlaylistPipeline {
-  async fetch(
-    spotify: SpotifyWebApi,
-    id: string
-  ): Promise<SpotifyWebApi.Playlist> {
-    return spotify.getPlaylist(id).then(resp => resp.body);
-  }
-
-  mapToPrisma(
-    spotifyPlaylist: SpotifyWebApi.Playlist
-  ): Prisma.PlaylistCreateInput {
-    return {
-      playlist_id: spotifyPlaylist.id,
-      latest_snapshot_id: spotifyPlaylist.snapshot_id,
-      ..._.pick(spotifyPlaylist, "description", "name", "uri", "public")
-    };
-  }
-
-  saveToPrisma(prisma: Prisma.Prisma, playlist: Prisma.PlaylistCreateInput) {
-    return prisma.upsertPlaylist({
-      where: { playlist_id: playlist.playlist_id },
-      create: playlist,
-      update: playlist
+export const Playlist = prismaObjectType({
+  name: "Playlist",
+  definition: t => {
+    t.prismaFields(["*"]);
+    t.field("latest_snapshot", {
+      type: "PlaylistSnapshot",
+      nullable: true,
+      resolve: async (root, args, { prisma }: Context) => {
+        const snapshot_id = root.latest_snapshot_id;
+        return prisma.playlistSnapshot({ snapshot_id });
+      }
     });
   }
-}
+});

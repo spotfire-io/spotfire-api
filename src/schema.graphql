@@ -1,5 +1,0 @@
-# import User, Playlist from "./generated/prisma.graphql"
-
-type Query {
-  playlist(uri: String): Playlist
-}

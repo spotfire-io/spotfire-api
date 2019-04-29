@@ -30,17 +30,25 @@ type Playlist {
   owner: User @relation(link: INLINE, name: "PlaylistOwner")
   uri: String @unique
   public: Boolean
+  collaborative: Boolean
   images: [Image]
   snapshots: [PlaylistSnapshot]! @relation(name: "PlaylistSnapshotToPlaylist")
   updated_at: DateTime! @updatedAt
   created_at: DateTime! @createdAt
 }
 
+enum PlaylistSnapshotStatus {
+  INITIALIZED
+  LOADED
+}
+
 type PlaylistSnapshot {
   id: ID! @id @unique
   snapshot_id: String! @unique
   playlist: Playlist @relation(link: INLINE, name: "PlaylistSnapshotToPlaylist")
-  track_count: Int
+  status: PlaylistSnapshotStatus! @default(value: INITIALIZED)
+  track_count: Int!
+  loaded_tracks: Int! @default(value: 0)
   playlist_tracks: [PlaylistTrack]!
     @relation(name: "PlaylistTrackToPlaylistSnapshot")
   updated_at: DateTime! @updatedAt
@@ -55,7 +63,7 @@ type PlaylistTrack {
   added_at: DateTime
   is_local: Boolean
   order: Int!
-  track: Track
+  track: Track! @relation(name: "PlaylistTrackToTrack")
   updated_at: DateTime @updatedAt
   created_at: DateTime @createdAt
 }
@@ -74,6 +82,9 @@ enum AlbumType {
 type Genre {
   id: ID! @id @unique
   name: String! @unique
+  artists: [Artist]! @relation(name: "ArtistToGenre")
+  albums: [Album]! @relation(name: "AlbumToGenre")
+  tracks: [Track]! @relation(name: "TrackToGenre")
 }
 
 enum ReleaseDatePrecision {
@@ -87,11 +98,13 @@ type Artist {
   artist_id: String! @unique
   uri: String @unique
   href: String @unique
-  genres: [Genre]!
-  followerCount: Int!
+  genres: [Genre]! @relation(name: "ArtistToGenre")
+  follower_count: Int
   images: [Image]!
   name: String
   popularity: Int
+  albums: [Album]! @relation(name: "AlbumToArtist")
+  tracks: [Track]! @relation(name: "TrackToArtist")
   updated_at: DateTime! @updatedAt
   created_at: DateTime! @createdAt
 }
@@ -102,16 +115,16 @@ type Album {
   uri: String @unique
   href: String @unique
   album_type: AlbumType
-  artists: [Artist]!
+  artists: [Artist]! @relation(name: "AlbumToArtist")
   available_markets: [Market]!
-  genres: [Genre]!
+  genres: [Genre]! @relation(name: "AlbumToGenre")
   images: [Image]!
   label: String
   name: String
   popularity: Int
   release_date: DateTime
   release_date_precision: ReleaseDatePrecision
-  tracks: [Track]!
+  tracks: [Track]! @relation(name: "TrackToAlbum")
   updated_at: DateTime! @updatedAt
   created_at: DateTime! @createdAt
 }
@@ -128,9 +141,11 @@ type Track {
   name: String
   popularity: Int
   preview_url: String
-  album: Album
-  artists: [Artist]!
+  album: Album @relation(link: INLINE, name: "TrackToAlbum")
+  playlist_tracks: [PlaylistTrack]! @relation(name: "PlaylistTrackToTrack")
+  artists: [Artist]! @relation(name: "TrackToArtist")
   features: AudioFeatures @relation(name: "AudioFeaturesToTrack")
+  analysis: AudioAnalysis @relation(name: "AudioAnalysisToTrack")
   updated_at: DateTime! @updatedAt
   created_at: DateTime! @createdAt
 }
@@ -140,18 +155,19 @@ enum Mode {
   MINOR
 }
 
-enum CamelotRing {
-  INNER
-  OUTER
+type Note {
+  id: ID! @id @unique
+  label: String! @unique
+  index: Int! @unique
 }
 
 type Key {
   id: ID! @id @unique
-  root_note_index: Int
-  mode: Mode
-  camelot_position: Int
-  camelot_ring: CamelotRing
-  camelot_code: String
+  label: String! @unique
+  camelot_code: String! @unique
+  root_note: Note! @relation(link: INLINE, name: "KeyToRootNote")
+  mode: Mode!
+  camelot_position: Int!
 }
 
 type AudioFeatures {
@@ -160,9 +176,8 @@ type AudioFeatures {
   track: Track @relation(link: INLINE, name: "AudioFeaturesToTrack")
   danceability: Float
   energy: Float
-  root_note: Int
+  key: Key @relation(link: INLINE, name: "AudioFeaturesToKey")
   loudness: Float
-  mode: Mode
   speechiness: Float
   acousticness: Float
   instrumentalness: Float
@@ -173,4 +188,87 @@ type AudioFeatures {
   time_signature: Int
   updated_at: DateTime! @updatedAt
   created_at: DateTime! @createdAt
+}
+
+type AudioAnalysis {
+  id: ID! @id @unique
+  uri: String! @unique
+  track: Track @relation(link: INLINE, name: "AudioAnalysisToTrack")
+  num_samples: Int
+  duration: Float
+  # Ignore these fields
+  # sample_md5: String
+  # offset_seconds: Int,
+  # "window_seconds": 0,
+  # "analysis_sample_rate": 22050,
+  # "analysis_channels": 1,
+  end_of_fade_in: Float
+  start_of_fade_out: Float
+  loudnes: Float
+  tempo: Float
+  tempo_confidence: Float
+  time_signature: Int
+  time_signature_confidence: Float
+  key: Key
+  # Change to Key
+  # key: Int,
+  # mode: Int,
+  # key_confidence: Float,
+  root_note_confidence: Float
+  mode_confidence: Float
+  sections: [AudioAnalysisSection]!
+    @relation(name: "AudioAnalysisSectionToAudioAnalysis")
+}
+
+type AudioAnalysisSection {
+  id: ID! @id @unique
+  analysis: AudioAnalysis
+    @relation(link: INLINE, name: "AudioAnalysisSectionToAudioAnalysis")
+  start: Float
+  duration: Float
+  confidence: Float
+  loudness: Float
+  tempo: Float
+  tempo_confidence: Float
+  # Convert to key
+  # "key": 9,
+  key: Key
+  root_note_confidence: Float
+  mode_confidence: Float
+  time_signature: Int
+  time_signature_confidence: Float
+}
+
+enum OptimizationJobStatus {
+  INITIALIZED
+  EXTRACTED
+  OPTIMIZING
+  DONE
+}
+
+type OptimizationJob {
+  id: ID! @id @unique
+  original_playlist_snapshot: PlaylistSnapshot!
+  status: OptimizationJobStatus! @default(value: INITIALIZED)
+  extract_path: String
+  start: DateTime!
+  end: DateTime
+}
+
+type SolverConstraintViolation {
+  id: ID! @id @unique
+  solver_status: SolverStatusUpdate!
+    @relation(link: INLINE, name: "SolverStatusToConstraintViolation")
+  constraint_name: String!
+  violation_count: Int!
+  score_impact: String!
+}
+
+type SolverStatusUpdate {
+  id: ID! @id @unique
+  job: OptimizationJob!
+  best_score: String!
+  time_millis_spent: Int!
+  constraint_violations: [SolverConstraintViolation]!
+    @relation(name: "SolverStatusToConstraintViolation")
 }

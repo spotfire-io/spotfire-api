@@ -3,10 +3,26 @@ import passport from "passport";
 import { Strategy as CustomStrategy } from "passport-custom";
 import { expressJwtSecret } from "jwks-rsa";
 import jwt from "express-jwt";
+import { Request, RequestHandler } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
 import _ from "lodash";
+import bodyParser = require("body-parser");
 
 require("dotenv-flow").config();
+
+const spotifyRefreshTokenHeaderName = (
+  process.env["SPOTIFY_REFRESH_TOKEN_HEADER_NAME"] || "x-spotify-refresh-token"
+).toLowerCase();
+const auth0SpotifyConnectionName =
+  process.env["AUTH0_SPOTIFY_CONNECTION_NAME"] || "Spotify";
+
+export interface User {
+  sub?: string;
+  spotifyUserId?: string;
+  spotifyRefreshToken?: string;
+  spotifyAccessToken?: string;
+  spotifyAccessTokenExpiresAt?: number;
+}
 
 const auth0 = new ManagementClient({
   domain: process.env.AUTH0_DOMAIN || "",
@@ -17,7 +33,10 @@ const auth0 = new ManagementClient({
 });
 
 export const decodeJwt = (req, res, next) => {
-  if (req.method == "POST") {
+  // Allow anonymous access to support GraphQL Introspection
+  if (!req.headers.authorization) {
+    next();
+  } else {
     jwt({
       secret: expressJwtSecret({
         cache: true,
@@ -28,74 +47,87 @@ export const decodeJwt = (req, res, next) => {
       //   issuer: `https://${process.env.AUTH0_DOMAIN}`,
       algorithms: ["RS256"]
     })(req, res, next);
-  } else {
-    next();
   }
 };
 
-export const auth0StrategyName = "auth0-jwt";
-export const auth0SpotifyStrategyName = "auth0-spotify";
-const auth0SpotifyConnectionName = "Spotify";
+export const strategies = {
+  setEmptyUserIfNoneDefined: new CustomStrategy(
+    async ({ user }: Request, done) => {
+      done(null, user || {});
+    }
+  ),
+  getSpotifyRefreshTokenFromHeader: new CustomStrategy(
+    async ({ user, headers }: Request, done) => {
+      const tokenFromHeader = headers[spotifyRefreshTokenHeaderName];
+      if (tokenFromHeader) {
+        user.spotifyRefreshToken = tokenFromHeader;
+      }
+      done(null, user);
+    }
+  ),
+  getSpotifyRefreshTokenFromAuth0: new CustomStrategy(
+    async (req: Request, done) => {
+      const { user } = req;
+      if (!user.spotifyRefreshToken && user.sub) {
+        try {
+          console.log(`Getting user detail from auth0 for user '${user.sub}`);
+          const auth0User = await auth0.getUser({ id: user.sub });
+          if (auth0User.identities) {
+            const identity = _.chain(auth0User)
+              .get("identities")
+              .filter(i =>
+                i ? i.connection === auth0SpotifyConnectionName : false
+              )
+              .first()
+              .value();
 
-export interface User {
-  sub?: string;
-  spotifyRefreshToken?: string;
-  spotifyAccessToken?: string;
-  spotifyAccessTokenExpiresAt?: number;
-}
-
-passport.use(
-  auth0StrategyName,
-  new CustomStrategy(
-    async ({ user, method }: { user: User; method: string }, done) => {
-      if (method == "POST") {
-        // If we have a Spotify ID but no refresh token
-        if (user && user.sub) {
-          if (!user.spotifyRefreshToken) {
-            try {
-              const auth0User = await auth0.getUser({ id: user.sub! });
-              if (auth0User.identities) {
-                const identity = _.chain(auth0User)
-                  .get("identities")
-                  .filter(i =>
-                    i ? i.connection === auth0SpotifyConnectionName : false
-                  )
-                  .first()
-                  .value();
-
-                if (identity) {
-                  user.spotifyRefreshToken = identity["refresh_token"];
-                }
-              }
-            } catch (err) {
-              console.error(
-                `An error occurred fetching the Auth0 user for ${user.sub}`,
-                err
-              );
-              done(err, false);
+            if (identity) {
+              user.spotifyRefreshToken = identity["refresh_token"];
             }
           }
-          if (user.spotifyRefreshToken) {
-            const expiresOn = user.spotifyAccessTokenExpiresAt || 0;
-            if (!user.spotifyAccessToken || expiresOn < new Date().getTime()) {
-              console.log(`Fetching new access token for ${user.sub}`);
-              const spotify = new SpotifyWebApi({
-                clientId: process.env.SPOTIFY_CLIENT_ID,
-                clientSecret: process.env.SPOTIFY_CLIENT_SECRET
-              });
-              spotify.setRefreshToken(user.spotifyRefreshToken);
-              const { body: grant } = await spotify.refreshAccessToken();
-              user.spotifyAccessToken = grant.access_token;
-              user.spotifyAccessTokenExpiresAt =
-                new Date().getTime() + grant.expires_in;
-            }
+        } catch (err) {
+          console.error(
+            `An error occurred fetching the Auth0 user for ${user.sub}`,
+            err
+          );
+          done(err, false);
+        }
+      }
+      done(null, user);
+    }
+  ),
+  getSpotifyAccessTokenFromRefreshToken: new CustomStrategy(
+    async (req: Request, done) => {
+      const { user } = req;
+      if (user.spotifyRefreshToken) {
+        const expiresOn = user.spotifyAccessTokenExpiresAt || 0;
+        if (!user.spotifyAccessToken || expiresOn < new Date().getTime()) {
+          console.log(`Fetching new access token`);
+          const spotify = new SpotifyWebApi({
+            clientId: process.env.SPOTIFY_CLIENT_ID,
+            clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+          });
+          spotify.setRefreshToken(user.spotifyRefreshToken);
+          try {
+            const { body: grant } = await spotify.refreshAccessToken();
+            user.spotifyAccessToken = grant.access_token;
+            user.spotifyAccessTokenExpiresAt =
+              new Date().getTime() + grant.expires_in;
+          } catch (err) {
+            console.error(
+              `An error occurred fetching an access token from Spotify for ${
+                user.spotifyRefreshToken
+              }`,
+              err
+            );
+            done(err, false);
           }
         }
       }
       done(null, user);
     }
   )
-);
+};
 
 passport.serializeUser(function(user, done) {
   done(null, user);
@@ -103,4 +135,11 @@ passport.serializeUser(function(user, done) {
 
 passport.deserializeUser(function(user, done) {
   done(null, user);
+});
+
+export const passportHandlers: RequestHandler[] = [];
+
+Object.keys(strategies).forEach(name => {
+  passport.use(name, strategies[name]);
+  passportHandlers.push(passport.authenticate(name));
 });
