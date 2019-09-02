@@ -36,6 +36,7 @@
     "lodash": "^4.17.11",
     "nexus": "^0.11.6",
     "nexus-prisma": "^0.3.5",
+    "node-cache": "^4.2.1",
     "passport": "^0.4.0",
     "passport-custom": "^1.0.5",
     "passport-jwt": "^4.0.0",

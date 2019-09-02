@@ -7,6 +7,7 @@ import { Request, RequestHandler } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
 import _ from "lodash";
 import bodyParser = require("body-parser");
+import NodeCache from "node-cache"
 
 require("dotenv-flow").config();
 
@@ -15,6 +16,8 @@ const spotifyRefreshTokenHeaderName = (
 ).toLowerCase();
 const auth0SpotifyConnectionName =
   process.env["AUTH0_SPOTIFY_CONNECTION_NAME"] || "Spotify";
+
+const ACCESS_TOKEN_SLACK_SECONDS = 60
 
 export interface User {
   sub?: string;
@@ -50,6 +53,36 @@ export const decodeJwt = (req, res, next) => {
   }
 };
 
+const refreshTokenCache = new NodeCache()
+const accessTokenCache = new NodeCache()
+
+interface OAuthAccessToken {
+  token: String
+  expiresAt: number
+}
+
+const fetchSpotifyAccessToken = async (refreshToken: string, userName: string, useCache: boolean = true) => {
+  const now = new Date().getTime()
+  if(useCache) {
+    const cached = accessTokenCache.get<OAuthAccessToken>(refreshToken) 
+    if(cached) return cached;
+  }
+  console.log(`Fetching new access token for ${userName}`);
+  const spotify = new SpotifyWebApi({
+    clientId: process.env.SPOTIFY_CLIENT_ID,
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+  });
+  spotify.setRefreshToken(refreshToken);
+  const { body: grant } = await spotify.refreshAccessToken();
+  const expiresInSeconds = grant.expires_in
+  const accessToken = {token: grant.access_token, expiresAt: now + expiresInSeconds * 1000}
+  if(useCache) {
+    const ttl = expiresInSeconds - ACCESS_TOKEN_SLACK_SECONDS
+    accessTokenCache.set<OAuthAccessToken>(refreshToken, accessToken, ttl)
+  }
+  return accessToken
+}
+
 export const strategies = {
   setEmptyUserIfNoneDefined: new CustomStrategy(
     async ({ user }: Request, done) => {
@@ -69,28 +102,34 @@ export const strategies = {
     async (req: Request, done) => {
       const { user } = req;
       if (!user.spotifyRefreshToken && user.sub) {
-        try {
-          console.log(`Getting user detail from auth0 for user '${user.sub}`);
-          const auth0User = await auth0.getUser({ id: user.sub });
-          if (auth0User.identities) {
-            const identity = _.chain(auth0User)
-              .get("identities")
-              .filter(i =>
-                i ? i.connection === auth0SpotifyConnectionName : false
-              )
-              .first()
-              .value();
+        const cached = refreshTokenCache.get(user.sub)
+        if(cached) {
+          user.spotifyRefreshToken = cached
+        } else {
+          try {
+            console.log(`Getting user detail from auth0 for user '${user.sub}`);
+            const auth0User = await auth0.getUser({ id: user.sub });
+            if (auth0User.identities) {
+              const identity = _.chain(auth0User)
+                .get("identities")
+                .filter(i =>
+                  i ? i.connection === auth0SpotifyConnectionName : false
+                )
+                .first()
+                .value();
 
-            if (identity) {
-              user.spotifyRefreshToken = identity["refresh_token"];
+              if (identity) {
+                user.spotifyRefreshToken = identity["refresh_token"];
+                refreshTokenCache.set(user.sub, user.spotifyRefreshToken)
+              }
             }
+          } catch (err) {
+            console.error(
+              `An error occurred fetching the Auth0 user for ${user.sub}`,
+              err
+            );
+            done(err, false);
           }
-        } catch (err) {
-          console.error(
-            `An error occurred fetching the Auth0 user for ${user.sub}`,
-            err
-          );
-          done(err, false);
         }
       }
       done(null, user);
@@ -100,28 +139,20 @@ export const strategies = {
     async (req: Request, done) => {
       const { user } = req;
       if (user.spotifyRefreshToken) {
-        const expiresOn = user.spotifyAccessTokenExpiresAt || 0;
-        if (!user.spotifyAccessToken || expiresOn < new Date().getTime()) {
-          console.log(`Fetching new access token`);
-          const spotify = new SpotifyWebApi({
-            clientId: process.env.SPOTIFY_CLIENT_ID,
-            clientSecret: process.env.SPOTIFY_CLIENT_SECRET
-          });
-          spotify.setRefreshToken(user.spotifyRefreshToken);
-          try {
-            const { body: grant } = await spotify.refreshAccessToken();
-            user.spotifyAccessToken = grant.access_token;
-            user.spotifyAccessTokenExpiresAt =
-              new Date().getTime() + grant.expires_in;
-          } catch (err) {
-            console.error(
-              `An error occurred fetching an access token from Spotify for ${
-                user.spotifyRefreshToken
-              }`,
-              err
-            );
-            done(err, false);
-          }
+        try {
+          const now = new Date().getTime()
+          const accessToken: OAuthAccessToken | undefined = 
+            (user.spotifyAccessToken && user.spotifyAccessTokenExpiresAt < now - ACCESS_TOKEN_SLACK_SECONDS * 1000) ?
+              {token: user.spotifyAccessToken, expiresAt: user.spotifyAccessTokenExpiresAt}
+              : await fetchSpotifyAccessToken(user.spotifyRefreshToken, user.sub, true)
+
+              if(accessToken) {
+                user.spotifyAccessToken = accessToken.token
+                user.spotifyAccessTokenExpiresAt = accessToken.expiresAt
+              }
+        } catch(err) {
+          console.error(`An error occurred fetching Spotify access token for ${user.sub}`, err);
+          done(err, false);
         }
       }
       done(null, user);
