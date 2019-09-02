@@ -118,7 +118,7 @@ export const strategies = {
           user.spotifyRefreshToken = cached
         } else {
           try {
-            logger.info('Getting user detail from auth0', {user_id: userId});
+            logger.info('Getting user detail from Auth0', {user_id: userId});
             const auth0User = await auth0.getUser({ id: user.sub });
             if (auth0User.identities) {
               const identity = _.chain(auth0User)
