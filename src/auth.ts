@@ -53,8 +53,12 @@ export const decodeJwt = (req, res, next) => {
   }
 };
 
-const refreshTokenCache = new NodeCache()
-const accessTokenCache = new NodeCache()
+const caches = {
+  spotify: {
+    refreshToken: new NodeCache(),
+    accessToken: new NodeCache()
+  }
+}
 
 interface OAuthAccessToken {
   token: String
@@ -64,7 +68,7 @@ interface OAuthAccessToken {
 const fetchSpotifyAccessToken = async (refreshToken: string, userName: string, useCache: boolean = true) => {
   const now = new Date().getTime()
   if(useCache) {
-    const cached = accessTokenCache.get<OAuthAccessToken>(refreshToken) 
+    const cached = caches.spotify.accessToken.get<OAuthAccessToken>(refreshToken) 
     if(cached) return cached;
   }
   console.log(`Fetching new access token for ${userName}`);
@@ -78,7 +82,7 @@ const fetchSpotifyAccessToken = async (refreshToken: string, userName: string, u
   const accessToken = {token: grant.access_token, expiresAt: now + expiresInSeconds * 1000}
   if(useCache) {
     const ttl = expiresInSeconds - ACCESS_TOKEN_SLACK_SECONDS
-    accessTokenCache.set<OAuthAccessToken>(refreshToken, accessToken, ttl)
+    caches.spotify.accessToken.set<OAuthAccessToken>(refreshToken, accessToken, ttl)
   }
   return accessToken
 }
@@ -102,7 +106,7 @@ export const strategies = {
     async (req: Request, done) => {
       const { user } = req;
       if (!user.spotifyRefreshToken && user.sub) {
-        const cached = refreshTokenCache.get(user.sub)
+        const cached = caches.spotify.refreshToken.get(user.sub)
         if(cached) {
           user.spotifyRefreshToken = cached
         } else {
@@ -120,7 +124,7 @@ export const strategies = {
 
               if (identity) {
                 user.spotifyRefreshToken = identity["refresh_token"];
-                refreshTokenCache.set(user.sub, user.spotifyRefreshToken)
+                caches.spotify.refreshToken.set(user.sub, user.spotifyRefreshToken)
               }
             }
           } catch (err) {
