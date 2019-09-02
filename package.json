@@ -9,6 +9,7 @@
     "build": "rimraf dist && prisma generate && tsc",
     "prisma-deploy": "prisma deploy  --env-file .env.development",
     "prisma-deploy-staging": "prisma deploy --env-file .env.staging",
+    "prisma-deploy-local-k8s": "prisma deploy --env-file .env.local-k8s",
     "prisma-generate": "prisma generate",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --no-notify --respawn --transpileOnly ./src/index.ts",
