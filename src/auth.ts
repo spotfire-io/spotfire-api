@@ -9,6 +9,8 @@ import _ from "lodash";
 import bodyParser = require("body-parser");
 import NodeCache from "node-cache"
 
+import logger from "./logger"
+
 require("dotenv-flow").config();
 
 const spotifyRefreshTokenHeaderName = (
@@ -65,13 +67,16 @@ interface OAuthAccessToken {
   expiresAt: number
 }
 
-const fetchSpotifyAccessToken = async (refreshToken: string, userName: string, useCache: boolean = true) => {
+const fetchSpotifyAccessToken = async (refreshToken: string, userId: string, useCache: boolean = true) => {
   const now = new Date().getTime()
   if(useCache) {
     const cached = caches.spotify.accessToken.get<OAuthAccessToken>(refreshToken) 
-    if(cached) return cached;
+    if(cached) {
+      logger.debug('Using cached Spotify access token', {user_id: userId, expires_at: cached.expiresAt})
+      return cached;
+    }
   }
-  console.log(`Fetching new access token for ${userName}`);
+  logger.info('Fetching new access token', {user_id: userId});
   const spotify = new SpotifyWebApi({
     clientId: process.env.SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET
@@ -82,6 +87,7 @@ const fetchSpotifyAccessToken = async (refreshToken: string, userName: string, u
   const accessToken = {token: grant.access_token, expiresAt: now + expiresInSeconds * 1000}
   if(useCache) {
     const ttl = expiresInSeconds - ACCESS_TOKEN_SLACK_SECONDS
+    logger.debug('Caching Spotify access token', {user_id: userId, ttl})
     caches.spotify.accessToken.set<OAuthAccessToken>(refreshToken, accessToken, ttl)
   }
   return accessToken
@@ -106,12 +112,13 @@ export const strategies = {
     async (req: Request, done) => {
       const { user } = req;
       if (!user.spotifyRefreshToken && user.sub) {
-        const cached = caches.spotify.refreshToken.get(user.sub)
+        const userId = user.sub;
+        const cached = caches.spotify.refreshToken.get(userId)
         if(cached) {
           user.spotifyRefreshToken = cached
         } else {
           try {
-            console.log(`Getting user detail from auth0 for user '${user.sub}`);
+            logger.info('Getting user detail from auth0', {user_id: userId});
             const auth0User = await auth0.getUser({ id: user.sub });
             if (auth0User.identities) {
               const identity = _.chain(auth0User)
@@ -125,14 +132,13 @@ export const strategies = {
               if (identity) {
                 user.spotifyRefreshToken = identity["refresh_token"];
                 caches.spotify.refreshToken.set(user.sub, user.spotifyRefreshToken)
+              } else {
+                logger.warn('No Spotify identity found for Auth0 user', {user_id: userId})
               }
             }
-          } catch (err) {
-            console.error(
-              `An error occurred fetching the Auth0 user for ${user.sub}`,
-              err
-            );
-            done(err, false);
+          } catch (error) {
+            logger.error('Error occurred fetching the Auth0 user details', {user_id: userId, error});
+            done(error, false);
           }
         }
       }
@@ -142,6 +148,7 @@ export const strategies = {
   getSpotifyAccessTokenFromRefreshToken: new CustomStrategy(
     async (req: Request, done) => {
       const { user } = req;
+      const userId = user.sub;
       if (user.spotifyRefreshToken) {
         try {
           const now = new Date().getTime()
@@ -154,9 +161,9 @@ export const strategies = {
                 user.spotifyAccessToken = accessToken.token
                 user.spotifyAccessTokenExpiresAt = accessToken.expiresAt
               }
-        } catch(err) {
-          console.error(`An error occurred fetching Spotify access token for ${user.sub}`, err);
-          done(err, false);
+        } catch(error) {
+          console.error(`An error occurred fetching Spotify access token`, {userId, error});
+          done(error, false);
         }
       }
       done(null, user);

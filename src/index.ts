@@ -16,11 +16,13 @@ import { Query, Mutation, Playlist } from "./schema";
 
 require("dotenv-flow").config();
 
+import logger from "./logger"
+
 const PORT = process.env.PORT || 4001;
 
 const prisma = new Prisma({
   endpoint: process.env["PRISMA_ENDPOINT"] || "http://localhost:4466",
-  secret: process.env["PRISMA_MANAGEMENT_API_SECRET"] || ""
+  secret: process.env["PRISMA_MANAGEMENT_API_SECRET"] || "",
   // debug: true
 });
 
@@ -82,8 +84,10 @@ app.get("/", (req, res, next) => {
 
 server.applyMiddleware({ app, path: "/" });
 
-app.listen({ port: PORT }, () =>
-  console.log(
-    `🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`
+app.listen({ port: PORT }, () => {
+  const path = `http://localhost:${PORT}${server.graphqlPath}`
+  logger.info(
+    `🚀 Server ready at ${path}`,
+    {path, port: PORT, graphql_path: server.graphqlPath}
   )
-);
+});

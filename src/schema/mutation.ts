@@ -13,7 +13,7 @@ import { convertToTimeZone } from "date-fns-timezone";
 
 import { Context, onError } from "../utils";
 import * as Prisma from "../generated/prisma-client";
-import { gql } from "apollo-server-core";
+import logger from "../logger"
 
 require("dotenv-flow").config();
 
@@ -240,11 +240,12 @@ export const Mutation = prismaObjectType({
           const updatePlaylistSnapshotLoaded = _.throttle(
             async (
               prisma: Prisma.Prisma,
+              playlist_id: string,
               snapshot_id: string,
               tracksLoaded: number
             ) => {
               const data = { loaded_tracks: tracksLoaded };
-              console.log("updatePlaylistSnapshot", data);
+              logger.info("Updating playlist snapshot", {...data, snapshot_id, playlist_id});
               return await prisma.updatePlaylistSnapshot({
                 where: { snapshot_id },
                 data
@@ -291,11 +292,7 @@ export const Mutation = prismaObjectType({
                       await trackPipeline
                         .upsert(input)
                         .then(async track => {
-                          console.log(
-                            `Adding playlist track ${
-                              track.name
-                            } (${order}/${track_count})`
-                          );
+                          logger.info('Adding playlist track', {track_name: track.name, order, track_count});
                           const ptInput: Prisma.PlaylistTrackCreateInput = {
                             snapshot: { connect: { snapshot_id } },
                             track: { connect: { id: track.id } },
@@ -327,24 +324,25 @@ export const Mutation = prismaObjectType({
                         .then(() =>
                           updatePlaylistSnapshotLoaded(
                             prisma,
+                            playlist_id,
                             snapshot_id,
                             ++loadedCount
                           )
                         )
                         .catch(onError);
-                    } catch (err) {
-                      console.error(
-                        `An error occurred loading track ${spotifyTrack.id} (${
-                          spotifyTrack.name
-                        })`
+                    } catch (error) {
+                      logger.error(
+                        'Error occurred loading playlist track',
+                        {spotify_track_id: spotifyTrack.id, track_name: spotifyTrack.name, error}
                       );
+                      throw error;
                     }
                   }
                 )
               );
             }
           }
-          console.log(`Done loading playlist ${playlist_id}:${snapshot_id}`);
+          logger.info('Completed loading playlist', {playlist_id, snapshot_id});
           return limiters.prisma.schedule(() =>
             prisma.playlist({ playlist_id })
           );
