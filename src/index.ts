@@ -18,8 +18,6 @@ require("dotenv-flow").config();
 
 const PORT = process.env.PORT || 4001;
 
-console.info("env", process.env.PRISMA_MANAGEMENT_API_SECRET)
-
 const prisma = new Prisma({
   endpoint: process.env["PRISMA_ENDPOINT"] || "http://localhost:4466",
   secret: process.env["PRISMA_MANAGEMENT_API_SECRET"] || ""
