@@ -20,6 +20,35 @@ type User {
   created_at: DateTime! @createdAt
 }
 
+enum PlaylistSnapshotStatus {
+  INITIALIZED
+  LOADED
+}
+
+type PlaylistTrack {
+  id: ID! @id @unique
+  snapshot: PlaylistSnapshot @relation(link: INLINE, name: "PlaylistTrackToPlaylistSnapshot")
+  added_by: User @relation(link: TABLE, name: "PlaylistTrackAddedByUser")
+  added_at: DateTime
+  is_local: Boolean
+  order: Int!
+  track: Track! @relation(name: "PlaylistTrackToTrack")
+  updated_at: DateTime @updatedAt
+  created_at: DateTime @createdAt
+}
+
+type PlaylistSnapshot {
+  id: ID! @id @unique
+  snapshot_id: String! @unique
+  playlist: Playlist @relation(link: INLINE, name: "PlaylistSnapshotToPlaylist")
+  status: PlaylistSnapshotStatus! @default(value: INITIALIZED)
+  track_count: Int!
+  loaded_tracks: Int! @default(value: 0)
+  playlist_tracks: [PlaylistTrack!]! @relation(name: "PlaylistTrackToPlaylistSnapshot")
+  updated_at: DateTime! @updatedAt
+  created_at: DateTime! @createdAt
+}
+
 type Playlist {
   id: ID! @id @unique
   playlist_id: String! @unique
@@ -32,40 +61,9 @@ type Playlist {
   public: Boolean
   collaborative: Boolean
   images: [Image]
-  snapshots: [PlaylistSnapshot]! @relation(name: "PlaylistSnapshotToPlaylist")
+  snapshots: [PlaylistSnapshot!]! @relation(name: "PlaylistSnapshotToPlaylist")
   updated_at: DateTime! @updatedAt
   created_at: DateTime! @createdAt
-}
-
-enum PlaylistSnapshotStatus {
-  INITIALIZED
-  LOADED
-}
-
-type PlaylistSnapshot {
-  id: ID! @id @unique
-  snapshot_id: String! @unique
-  playlist: Playlist @relation(link: INLINE, name: "PlaylistSnapshotToPlaylist")
-  status: PlaylistSnapshotStatus! @default(value: INITIALIZED)
-  track_count: Int!
-  loaded_tracks: Int! @default(value: 0)
-  playlist_tracks: [PlaylistTrack]!
-    @relation(name: "PlaylistTrackToPlaylistSnapshot")
-  updated_at: DateTime! @updatedAt
-  created_at: DateTime! @createdAt
-}
-
-type PlaylistTrack {
-  id: ID! @id @unique
-  snapshot: PlaylistSnapshot
-    @relation(link: INLINE, name: "PlaylistTrackToPlaylistSnapshot")
-  added_by: User @relation(link: TABLE, name: "PlaylistTrackAddedByUser")
-  added_at: DateTime
-  is_local: Boolean
-  order: Int!
-  track: Track! @relation(name: "PlaylistTrackToTrack")
-  updated_at: DateTime @updatedAt
-  created_at: DateTime @createdAt
 }
 
 type Market {
@@ -82,9 +80,9 @@ enum AlbumType {
 type Genre {
   id: ID! @id @unique
   name: String! @unique
-  artists: [Artist]! @relation(name: "ArtistToGenre")
-  albums: [Album]! @relation(name: "AlbumToGenre")
-  tracks: [Track]! @relation(name: "TrackToGenre")
+  artists: [Artist!]! @relation(name: "ArtistToGenre")
+  albums: [Album!]! @relation(name: "AlbumToGenre")
+  tracks: [Track!]! @relation(name: "TrackToGenre")
 }
 
 enum ReleaseDatePrecision {
@@ -196,12 +194,6 @@ type AudioAnalysis {
   track: Track @relation(link: INLINE, name: "AudioAnalysisToTrack")
   num_samples: Int
   duration: Float
-  # Ignore these fields
-  # sample_md5: String
-  # offset_seconds: Int,
-  # "window_seconds": 0,
-  # "analysis_sample_rate": 22050,
-  # "analysis_channels": 1,
   end_of_fade_in: Float
   start_of_fade_out: Float
   loudnes: Float
@@ -210,28 +202,20 @@ type AudioAnalysis {
   time_signature: Int
   time_signature_confidence: Float
   key: Key
-  # Change to Key
-  # key: Int,
-  # mode: Int,
-  # key_confidence: Float,
   root_note_confidence: Float
   mode_confidence: Float
-  sections: [AudioAnalysisSection]!
-    @relation(name: "AudioAnalysisSectionToAudioAnalysis")
+  sections: [AudioAnalysisSection]! @relation(name: "AudioAnalysisSectionToAudioAnalysis")
 }
 
 type AudioAnalysisSection {
   id: ID! @id @unique
-  analysis: AudioAnalysis
-    @relation(link: INLINE, name: "AudioAnalysisSectionToAudioAnalysis")
+  analysis: AudioAnalysis @relation(link: INLINE, name: "AudioAnalysisSectionToAudioAnalysis")
   start: Float
   duration: Float
   confidence: Float
   loudness: Float
   tempo: Float
   tempo_confidence: Float
-  # Convert to key
-  # "key": 9,
   key: Key
   root_note_confidence: Float
   mode_confidence: Float
@@ -257,8 +241,7 @@ type OptimizationJob {
 
 type SolverConstraintViolation {
   id: ID! @id @unique
-  solver_status: SolverStatusUpdate!
-    @relation(link: INLINE, name: "SolverStatusToConstraintViolation")
+  solver_status: SolverStatusUpdate! @relation(link: INLINE, name: "SolverStatusToConstraintViolation")
   constraint_name: String!
   violation_count: Int!
   score_impact: String!
@@ -269,6 +252,5 @@ type SolverStatusUpdate {
   job: OptimizationJob!
   best_score: String!
   time_millis_spent: Int!
-  constraint_violations: [SolverConstraintViolation]!
-    @relation(name: "SolverStatusToConstraintViolation")
+  constraint_violations: [SolverConstraintViolation!]! @relation(name: "SolverStatusToConstraintViolation")
 }
