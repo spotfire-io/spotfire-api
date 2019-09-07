@@ -116,6 +116,7 @@ export const strategies = {
         const cached = caches.spotify.refreshToken.get(userId)
         if(cached) {
           user.spotifyRefreshToken = cached
+          logger.debug('Using cached Spotify refresh token', {user_id: userId})
         } else {
           try {
             logger.info('Getting user detail from Auth0', {user_id: userId});

@@ -6,7 +6,7 @@
     }
   ],
   "scripts": {
-    "build": "rimraf dist && prisma generate && tsc",
+    "build": "rimraf dist && prisma generate && nexus-prisma-generate --output ./src/generated/nexus-prisma && tsc",
     "prisma-deploy": "prisma deploy  --env-file .env.development",
     "prisma-deploy-staging": "prisma deploy --env-file .env.staging",
     "prisma-deploy-local-k8s": "prisma deploy --env-file .env.local-k8s",
@@ -18,8 +18,7 @@
   },
   "dependencies": {
     "@reactivex/rxjs": "^6.4.0",
-    "apollo-server": "^2.4.8",
-    "apollo-server-express": "^2.4.8",
+    "apollo-server-express": "2.9.3",
     "auth0": "^2.16.0",
     "aws-sdk": "^2.444.0",
     "bottleneck": "^2.17.1",
@@ -30,17 +29,18 @@
     "dotenv": "^7.0.0",
     "dotenv-flow": "^0.3.0",
     "express-jwt": "^5.3.1",
-    "graphql": "^14.2.0",
+    "graphql": "14.3.0",
     "graphql-import": "^0.7.1",
     "jwks-rsa": "^1.4.0",
     "lodash": "^4.17.11",
     "nexus": "^0.11.6",
-    "nexus-prisma": "^0.3.5",
+    "nexus-prisma": "^0.3.8",
     "node-cache": "^4.2.1",
     "passport": "^0.4.0",
     "passport-custom": "^1.0.5",
     "passport-jwt": "^4.0.0",
-    "prisma": "^1.31.1",
+    "prisma": "^1.34.8",
+    "prisma-client-lib": "^1.34.8",
     "sha256-file": "^1.0.0",
     "spotify-web-api-node": "^4.0.0",
     "tar": "^4.4.8",
@@ -58,7 +58,8 @@
     "@types/tar": "^4.0.0",
     "@types/tmp": "^0.1.0",
     "@types/winston": "^2.4.4",
-    "jest": "^24.5.0",
+    "jest": "^24.9.0",
+    "nexus-prisma-generate": "^0.3.7",
     "nodemon": "^1.18.10",
     "rimraf": "^2.6.3",
     "ts-jest": "^24.0.1",
@@ -67,5 +68,11 @@
     "ts-node-dev": "^1.0.0-pre.32",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.4.3"
+  },
+  "resolutions": {
+    "nexus-prisma-generate/**/graphql": "14.3.0",
+    "prisma/**/graphql": "14.3.0",
+    "prisma-datamodel/**/graphql": "14.3.0",
+    "prisma-generate-schema/**/graphql": "14.3.0"
   }
 }

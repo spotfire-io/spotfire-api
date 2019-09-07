@@ -62,7 +62,12 @@ export const Query = prismaObjectType({
             const upserted = await pipeline
               .mapToPrismaInput(playlist)
               .then(pipeline.upsert);
-            return prisma.playlist({ playlist_id: id });
+            const result = await prisma.playlist({ playlist_id: id });
+            if(result) {
+              return result
+            } else {
+              throw new Error(`Could not retrieve playlist for is ${id}`)
+            }
           } else {
             throw new Error(`Could not find playlist by id ${id}`);
           }

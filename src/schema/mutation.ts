@@ -233,6 +233,10 @@ export const Mutation = prismaObjectType({
 
           const snapshot = await prisma.playlistSnapshot({ snapshot_id });
 
+          if(!snapshot) {
+            throw new Error(`Cannot find playlist snapshot ${snapshot_id}`)
+          }
+
           const { track_count } = snapshot;
           const pageSize = 100;
           let loadedCount = 0;
@@ -322,12 +326,12 @@ export const Mutation = prismaObjectType({
                           return track;
                         })
                         .then(() =>
-                          updatePlaylistSnapshotLoaded(
-                            prisma,
-                            playlist_id,
-                            snapshot_id,
-                            ++loadedCount
-                          )
+                            updatePlaylistSnapshotLoaded(
+                              prisma,
+                              playlist_id,
+                              snapshot_id,
+                              ++loadedCount
+                            )
                         )
                         .catch(onError);
                     } catch (error) {
@@ -343,9 +347,14 @@ export const Mutation = prismaObjectType({
             }
           }
           logger.info('Completed loading playlist', {playlist_id, snapshot_id});
-          return limiters.prisma.schedule(() =>
-            prisma.playlist({ playlist_id })
-          );
+          return limiters.prisma.schedule(async () => {
+            const result = await prisma.playlist({ playlist_id })
+            if(result) {
+              return result
+            } else {
+              throw new Error(`Could not retrieve playlist ${playlist_id}`)
+            }
+          });
         }
       });
   }

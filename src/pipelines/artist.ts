@@ -7,6 +7,7 @@ import * as Prisma from "../generated/prisma-client";
 import { Pipeline, ImagePipeline } from "./";
 import { Limiters, onError } from "../utils";
 import { GenrePipeline } from "./genre";
+import logger from "../logger";
 
 export class ArtistPipeline extends Pipeline<
   SpotifyWebApi.Artist,
@@ -121,8 +122,9 @@ export class ArtistPipeline extends Pipeline<
             const input = await this.mapToPrismaInput(spotifyHit).catch(
               onError
             );
-            const artist = await this.upsert(input).catch(onError);
-            return this.whereUnique(artist);
+            const artist = await this.upsert(input)
+              .then(this.whereUnique)
+              .catch(onError);
           } else {
             console.warn(`Could not find artist with id ${id}`);
           }

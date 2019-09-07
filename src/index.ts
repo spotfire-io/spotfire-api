@@ -1,6 +1,7 @@
 import * as path from "path";
 import { ApolloServer, defaultPlaygroundOptions } from "apollo-server-express";
 import expressPlayground from "graphql-playground-middleware-express";
+import { RenderPageOptions } from "graphql-playground-html";
 import { makePrismaSchema } from "nexus-prisma";
 import express from "express";
 import passport from "passport";
@@ -72,14 +73,16 @@ app.use(
 // Enable GraphQL playground separately so we can receive headers from URL params
 app.get("/", (req, res, next) => {
   const headers = req.query["headers"] || {};
-  expressPlayground({
+  const options: RenderPageOptions = {
     ...defaultPlaygroundOptions,
+    version: "1.7.20",
     endpoint: `/?headers=${encodeURIComponent(headers)}`,
     settings: {
       ...defaultPlaygroundOptions.settings,
       "editor.cursorShape": "line"
     }
-  })(req, res, next);
+  }
+  expressPlayground(options)(req, res, next);
 });
 
 server.applyMiddleware({ app, path: "/" });

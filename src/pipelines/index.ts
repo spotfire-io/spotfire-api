@@ -5,6 +5,7 @@ import { autobind } from "ts-class-autobind";
 
 import { Prisma, Key } from "../generated/prisma-client";
 import { Limiters } from "../utils";
+import logger from "../logger";
 
 interface KeyLookupCriteria {
   mode: number;
@@ -66,12 +67,17 @@ export abstract class Pipeline<
     spotifyVal: SpotifyType
   ): PrimsaCreateType | Promise<PrimsaCreateType>;
 
-  abstract upsert(createObj: PrimsaCreateType): Promise<PrismaType>;
+  abstract upsert(createObj: PrimsaCreateType): Promise<PrismaType | null>;
 
   whereUnique = (
-    obj: PrismaType | PrimsaCreateType
+    obj: PrismaType | PrimsaCreateType | null
   ): PrismaWhereUniqueInput => {
-    return <PrismaWhereUniqueInput>_.pick(obj, this.prismaKey);
+    if(obj) {
+      return <PrismaWhereUniqueInput>_.pick(obj, this.prismaKey);
+    } else {
+      logger.error(`Could not search for undefined ${this.prismaKey}`)
+      throw new Error(`Could not search for undefined ${this.prismaKey}`)
+    }
   };
 
   upsertAndConnect = async (
