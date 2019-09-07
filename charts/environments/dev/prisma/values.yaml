@@ -1,0 +1,2 @@
+prisma:
+  host: "prisma.dev.spotfire.io"

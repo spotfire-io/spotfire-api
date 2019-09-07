@@ -3,7 +3,7 @@ image:
 database:
   connector: postgres
 auth:
-  enabled: true # Note: The auth secret is defined in secrets.yaml
+  enabled: true
 
 ingress:
   enabled: true
@@ -11,7 +11,7 @@ ingress:
     kubernetes.io/ingress.class: nginx
   path: /
   hosts:
-    - prisma.spotfire.spantree.net
+    - {{ .Environment.Values.prisma.host }}
   tls: [] # TODO: Make this work
 
 postgresql:
