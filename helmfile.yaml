@@ -25,4 +25,4 @@ helmDefaults:
 # ** does not seem to be accepted, and * does not recurse more than one level of
 # directory
 helmfiles:
-  - charts/helmfiles.d/*.yaml
+  - helm/helmfiles.d/*.yaml
