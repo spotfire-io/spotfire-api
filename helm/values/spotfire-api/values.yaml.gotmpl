@@ -1,0 +1,40 @@
+image:
+  repository: {{ .Environment.Values | get "image.repository" | quote }}
+  tag: {{ .Environment.Values | get "image.tag" | quote }}
+auth0:
+  domain: {{ .Environment.Values | get "auth0.domain" | quote }}
+  client_id: {{ .Environment.Values | get "auth0.client_id" | quote }}
+  client_secret: {{ .Environment.Values | get "auth0.client_secret" | quote }}
+  spotify_provider: {{ .Environment.Values | get "auth0.spotify_provider_name" | quote }}
+spotify:
+  client_id: {{ .Environment.Values | get "spotify.client_id" | quote }}
+  client_secret: {{ .Environment.Values | get "spotify.client_secret" | quote }}
+aws:
+  access_key_id: {{ .Environment.Values | get "aws.access_key_id" | quote }}
+  secret_access_key: {{ .Environment.Values | get "aws.secret_access_key" | quote }}
+  s3_extract_bucket_name: {{ .Environment.Values | get "aws.s3_extract_bucket_name" | quote }}
+prisma:
+  endpoint: "http://spotfire-prisma:{{ .Environment.Values | get "prisma.port" "4466" }}"
+  {{ if eq .Environment.Name "dev" }}
+  api_secret: {{ .Environment.Values | get "prisma.api_secret_unencrypted" | quote }}
+  {{ else }}
+  api_secret: {{ .Environment.Values | get "prisma.api_secret" | quote }}
+  {{ end}}
+service:
+  port: 4001
+ingress:
+  {{ if eq .Environment.Name "dev" }}
+  enabled: false
+  {{ else }}
+  enabled: true
+  {{ end }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  path: /
+  hosts:
+    - {{ .Environment.Values | get "spotfire_api.host" | quote }}
+  tls:
+  - secretName: "spotfire-api-tls"
+    hosts:
+      - {{ .Environment.Values | get "spotfire_api.host" | quote }}

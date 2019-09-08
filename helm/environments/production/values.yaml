@@ -1,0 +1,7 @@
+image:
+  repository: spotfire/spotfire-api
+  tag: latest
+prisma:
+  host: prisma.spotfire.spantree.net
+spotfire_api:
+  host: api.spotfire.spantree.net

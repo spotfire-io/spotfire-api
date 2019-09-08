@@ -4,17 +4,38 @@ database:
   connector: postgres
 auth:
   enabled: true
+  {{ if eq .Environment.Name "dev" }}
+  secret: {{ .Environment.Values | get "prisma.api_secret_unencrypted" | quote }}
+  {{ else }}
+  secret: {{ .Environment.Values | get "prisma.api_secret" | quote }}
+  {{ end}}
+
+service:
+  port: {{ .Environment.Values | get "prisma.port" "4466" }}
 
 ingress:
+  {{ if eq .Environment.Name "dev" }}
+  enabled: false
+  {{ else }}
   enabled: true
+  {{ end }}
   annotations:
     kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
   path: /
   hosts:
-    - {{ .Environment.Values.prisma.host }}
-  tls: [] # TODO: Make this work
+    - {{ .Environment.Values | get "prisma.host" | quote }}
+  tls:
+  - secretName: "spotfire-prisma-tls"
+    hosts:
+      - {{ .Environment.Values | get "prisma.host" | quote }}
 
 postgresql:
   enabled: true # Attach a dedicated Postgres instance
   persistence:
     enabled: true
+    {{ if eq .Environment.Name "dev" }}
+    password: {{ .Environment.Values | get "postgres.password_unencrypted" | quote }}
+    {{ else }}
+    password: {{ .Environment.Values | get "postgres.password" | quote }}
+    {{ end}}

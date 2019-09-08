@@ -1,0 +1,14 @@
+image:
+  repository: spotfire-api
+  tag: latest
+auth0:
+  domain: spotfire-io.auth0.com
+  client_id: 4xCFi5lbuG1nIY3gEQ3z1OKIW5Xb5leE
+  spotify_provider_name: Spotify
+spotify:
+  client_id: d68b1dcd658c42a8a7d4536f03f24591
+aws:
+  access_key_id: AKIA5MOKP46HKMCZY5W5
+  s3_extract_bucket_name: spotfire-extracts
+prisma:
+  port: 4466

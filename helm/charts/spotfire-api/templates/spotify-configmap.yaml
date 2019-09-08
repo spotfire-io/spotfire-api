@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spotify-config
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{.Chart.Name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  SPOTIFY_CLIENT_ID: {{ .Values.spotify.client_id | quote }}
