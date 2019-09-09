@@ -22,11 +22,15 @@ import logger from "./logger";
 
 const PORT = process.env.PORT || 4001;
 
+const prismaEndpoint =
+  process.env["PRISMA_ENDPOINT"] || "http://localhost:4466";
+
 const prisma = new Prisma({
-  endpoint: process.env["PRISMA_ENDPOINT"] || "http://localhost:4466",
+  endpoint: prismaEndpoint,
   secret: process.env["PRISMA_MANAGEMENT_API_SECRET"] || ""
-  // debug: true
 });
+
+logger.info("Connecting to Prisma", { endpoint: prismaEndpoint });
 
 const schema = makePrismaSchema({
   types: Object.values(schemaTypes),
