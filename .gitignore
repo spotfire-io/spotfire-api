@@ -2,3 +2,4 @@
 *.dec
 dist
 .env
+!.env.*.enc

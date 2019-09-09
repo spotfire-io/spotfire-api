@@ -1,2 +1,4 @@
 prisma:
   host: "prisma.dev.spotfire.io"
+spotfire_api:
+  host: "api.dev.spotfire.io"

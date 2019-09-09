@@ -1,3 +1,4 @@
-helmfile 0.82.0
 helm 2.11.0
+helmfile 0.82.0
+nodejs 10.16.3
 sops 3.3.1
