@@ -10,7 +10,11 @@ import { format as dateFormat } from "date-fns";
 
 import { Context } from "../../utils";
 
-import { getFragment } from "../utils";
+import { PlaylistSnapshotForOptimization } from "../../fragments/PlaylistSnapshotForOptimization";
+import { KeyForOptimization } from "../../fragments/KeyForOptimization";
+import { PlaylistTrackForOptimization } from "../../fragments/PlaylistTrackForOptimization";
+import { ArtistForOptimization } from "../../fragments/ArtistForOptimization";
+import { AlbumForOptimization } from "../../fragments/AlbumForOptimization";
 
 require("dotenv-flow").config();
 
@@ -55,7 +59,7 @@ const optimizePlaylist: NexusOutputFieldConfig<
     const snapshot = await limiters.prisma.schedule(() =>
       prisma
         .playlistSnapshot({ snapshot_id })
-        .$fragment(getFragment("PlaylistSnapshotForOptimization"))
+        .$fragment(PlaylistSnapshotForOptimization)
     );
     if (!snapshot) {
       throw Error("Snapshot not found");
@@ -73,9 +77,7 @@ const optimizePlaylist: NexusOutputFieldConfig<
 
     await Promise.all([
       limiters.prisma
-        .schedule(() =>
-          prisma.keys().$fragment(getFragment("KeyForOptimization"))
-        )
+        .schedule(() => prisma.keys().$fragment(KeyForOptimization))
         .then(writeToJsonFile(`${tmpDir}/keys.jsonl`)),
       limiters.prisma
         .schedule(async () =>
@@ -84,7 +86,7 @@ const optimizePlaylist: NexusOutputFieldConfig<
               where: { snapshot: { snapshot_id } },
               orderBy: "order_ASC"
             })
-            .$fragment(getFragment("PlaylistTrackForOptimization"))
+            .$fragment(PlaylistTrackForOptimization)
         )
         .then(writeToJsonFile(`${tmpDir}/playlistTracks.jsonl`)),
       limiters.prisma
@@ -108,7 +110,7 @@ const optimizePlaylist: NexusOutputFieldConfig<
                 ]
               }
             })
-            .$fragment(await getFragment("ArtistForOptimization"))
+            .$fragment(ArtistForOptimization)
         )
         .then(writeToJsonFile(`${tmpDir}/artists.jsonl`)),
       limiters.prisma
@@ -121,7 +123,7 @@ const optimizePlaylist: NexusOutputFieldConfig<
                 }
               }
             })
-            .$fragment(await getFragment("AlbumForOptimization"))
+            .$fragment(AlbumForOptimization)
         )
         .then(writeToJsonFile(`${tmpDir}/albums.jsonl`))
     ]);

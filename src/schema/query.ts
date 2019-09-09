@@ -1,17 +1,8 @@
 import { prismaObjectType } from "nexus-prisma";
 import { stringArg, booleanArg, subscriptionField } from "nexus/dist";
-import {
-  Context,
-  getSpotifyIfExists,
-  getPipelinesIfExists,
-  Pipelines
-} from "../utils";
-import { Playlist, Fragmentable } from "../generated/prisma-client";
-import logger from "../logger";
+import { Context, getSpotifyIfExists, getPipelinesIfExists } from "../utils";
 import _ from "lodash";
-import { gql } from "apollo-server-core";
-
-import { getFragment } from "./utils";
+import { PlaylistDetails } from "../fragments/PlaylistDetails";
 
 const transformPlaylistResults = async (results: any[]) => {
   return results.map(async p => {
@@ -133,7 +124,7 @@ export const Query = prismaObjectType({
             }
             const result = await ctx.prisma
               .playlist({ playlist_id: id })
-              .$fragment(getFragment("PlaylistDetails"));
+              .$fragment(PlaylistDetails);
             if (result) {
               return result;
             } else {
