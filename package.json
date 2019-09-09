@@ -9,8 +9,8 @@
     "build": "rimraf dist generated && prisma generate && nexus-prisma-generate --output ./src/generated/nexus-prisma && tsc",
     "prisma-deploy": "prisma deploy --env-file .env.${NODE_ENV}",
     "prisma-generate": "prisma generate --env-file .env.${NODE_ENV}",
-    "start": "node dist/index.js",
-    "dev": "ts-node ./src/index.ts",
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node-dev --transpileOnly ./src/index.ts",
     "test": "jest",
     "test-watch": "jest --watchAll"
   },
