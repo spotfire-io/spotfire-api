@@ -1,5 +1,6 @@
 import * as path from "path";
 import { ApolloServer, defaultPlaygroundOptions } from "apollo-server-express";
+import { ApolloErrorConverter } from "apollo-error-converter";
 import expressPlayground from "graphql-playground-middleware-express";
 import { RenderPageOptions } from "graphql-playground-html";
 import { makePrismaSchema } from "nexus-prisma";
@@ -13,22 +14,22 @@ import datamodelInfo from "./generated/nexus-prisma";
 import { Context, getPipelines, limiters } from "./utils";
 import { decodeJwt, passportHandlers, User } from "./auth";
 
-import { Query, Mutation, Playlist } from "./schema";
+import * as schemaTypes from "./schema";
 
 require("dotenv-flow").config();
 
-import logger from "./logger"
+import logger from "./logger";
 
 const PORT = process.env.PORT || 4001;
 
 const prisma = new Prisma({
   endpoint: process.env["PRISMA_ENDPOINT"] || "http://localhost:4466",
-  secret: process.env["PRISMA_MANAGEMENT_API_SECRET"] || "",
+  secret: process.env["PRISMA_MANAGEMENT_API_SECRET"] || ""
   // debug: true
 });
 
 const schema = makePrismaSchema({
-  types: [Query, Mutation, Playlist],
+  types: Object.values(schemaTypes),
 
   prisma: {
     datamodelInfo,
@@ -48,6 +49,10 @@ const server = new ApolloServer({
   tracing: true,
   debug: true,
   playground: false,
+  formatError: error => {
+    logger.error(error);
+    return { message: error.message };
+  },
   context: ({ req }): Context => {
     const user: User = req.user;
     const context: Context = { prisma, limiters };
@@ -81,16 +86,17 @@ app.get("/", (req, res, next) => {
       ...defaultPlaygroundOptions.settings,
       "editor.cursorShape": "line"
     }
-  }
+  };
   expressPlayground(options)(req, res, next);
 });
 
 server.applyMiddleware({ app, path: "/" });
 
 app.listen({ port: PORT }, () => {
-  const path = `http://localhost:${PORT}${server.graphqlPath}`
-  logger.info(
-    `🚀 Server ready at ${path}`,
-    {path, port: PORT, graphql_path: server.graphqlPath}
-  )
+  const path = `http://localhost:${PORT}${server.graphqlPath}`;
+  logger.info(`🚀 Server ready at ${path}`, {
+    path,
+    port: PORT,
+    graphql_path: server.graphqlPath
+  });
 });

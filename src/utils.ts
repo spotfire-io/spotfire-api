@@ -1,6 +1,7 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import _ from "lodash";
 import Bottleneck from "bottleneck";
+import logger from "./logger";
 
 import { Prisma } from "./generated/prisma-client";
 import {
@@ -107,3 +108,19 @@ export interface Context {
   prisma: Prisma;
   limiters: Limiters;
 }
+
+export const getSpotifyIfExists = (ctx: Context): SpotifyWebApi => {
+  if (!ctx.spotify) {
+    throw new Error("Missing Spotify credentials");
+  } else {
+    return ctx.spotify;
+  }
+};
+
+export const getPipelinesIfExists = (ctx: Context): Pipelines => {
+  if (!ctx.pipelines) {
+    throw new Error("Missing Pipeline configurations");
+  } else {
+    return ctx.pipelines;
+  }
+};

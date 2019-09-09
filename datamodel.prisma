@@ -21,7 +21,9 @@ type User {
 }
 
 enum PlaylistSnapshotStatus {
+  NOT_LOADED
   INITIALIZED
+  LOADING
   LOADED
 }
 

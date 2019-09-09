@@ -1,12 +1,50 @@
 import { prismaObjectType } from "nexus-prisma";
-import { stringArg } from "nexus/dist";
-import { Context } from "../utils";
+import { stringArg, booleanArg, subscriptionField } from "nexus/dist";
+import {
+  Context,
+  getSpotifyIfExists,
+  getPipelinesIfExists,
+  Pipelines
+} from "../utils";
+import { Playlist, Fragmentable } from "../generated/prisma-client";
+import logger from "../logger";
+import _ from "lodash";
+import { gql } from "apollo-server-core";
+
+import { getFragment } from "./utils";
+
+const transformPlaylistResults = async (results: any[]) => {
+  return results.map(async p => {
+    const result = {
+      ..._.pick(
+        p,
+        "id",
+        "description",
+        "name",
+        "uri",
+        "href",
+        "images",
+        "public",
+        "collaborative"
+      ),
+      latest_snapshot_id: p.snapshot_id,
+      owner: {
+        ..._.pick(p.owner, "display_name", "id", "href", "uri")
+      }
+    };
+    return result;
+  });
+};
+
+const playlistUrlPattern = /[:\/]playlist(s)?[:\/]([^/?\:]+)/;
+
+subscriptionField;
 
 export const Query = prismaObjectType({
   name: "Query",
   definition: t => {
     t.prismaFields([
-      "playlists",
+      // "playlists",
       "albums",
       "album",
       "artist",
@@ -15,10 +53,45 @@ export const Query = prismaObjectType({
       "genres",
       "key",
       "keys",
-      "playlistSnapshot",
+      // "playlistSnapshot",
       "track",
-      "tracks"
+      "tracks",
+      "playlistsConnection"
     ]);
+    t.field("playlists", {
+      type: "Playlist",
+      list: true,
+      args: {
+        query: stringArg({
+          description: "Search query or URI of playlist",
+          nullable: true
+        })
+      },
+      resolve: async (root, { query }, ctx: Context) => {
+        const spotify = getSpotifyIfExists(ctx);
+        const pipelines = getPipelinesIfExists(ctx);
+        let playlists: any[];
+        if (!query) {
+          const me = await spotify.getMe().then(resp => resp.body);
+          playlists = await spotify
+            .getUserPlaylists(me.id)
+            .then(resp => resp.body.items);
+        } else {
+          const urlMatch = query.match(playlistUrlPattern);
+          if (urlMatch) {
+            const playlistId = urlMatch[2];
+            playlists = [
+              await pipelines.playlist.spotifyLoader.load(playlistId)
+            ];
+          } else {
+            playlists = await spotify
+              .searchPlaylists(query)
+              .then(resp => resp.body.playlists.items);
+          }
+        }
+        return transformPlaylistResults(playlists);
+      }
+    });
     t.field("playlist", {
       type: "Playlist",
       args: {
@@ -29,20 +102,21 @@ export const Query = prismaObjectType({
         id: stringArg({
           description: "The playlist ID",
           nullable: true
+        }),
+        upsert: booleanArg({
+          description:
+            "Upsert the playlist if it doesn't exist in the database",
+          default: true
         })
       },
-      resolve: async (root, { uri, id }, ctx: Context) => {
-        const { spotify, prisma, pipelines } = ctx;
-        if (!spotify) {
-          throw new Error("Not authorized for Spotify");
-        }
+      resolve: async (root, { uri, id, upsert }, ctx: Context) => {
+        const spotify = getSpotifyIfExists(ctx);
+        const pipelines = getPipelinesIfExists(ctx);
         if (!id) {
           if (!uri) {
             throw Error("Must provide URI or playlist ID");
           } else {
-            const match = uri.match(
-              /user[:\/]([^:\/]*)[:\/]playlist[:\/](\w*)(\?si=(\w+))?/
-            );
+            const match = uri.match(playlistUrlPattern);
             if (match) {
               id = match[2];
             }
@@ -50,23 +124,20 @@ export const Query = prismaObjectType({
         }
         if (!id) {
           throw new Error("Could not find an ID for playlist");
-        } else if (!pipelines) {
-          throw new Error("Pipelines not defined");
         } else {
-          const pipeline = pipelines.playlist;
-          if (!pipeline) {
-            throw new Error("Playlist pipeline not defined");
-          }
+          const { playlist: pipeline } = getPipelinesIfExists(ctx);
           const playlist = await pipeline.spotifyLoader.load(id);
           if (playlist) {
-            const upserted = await pipeline
-              .mapToPrismaInput(playlist)
-              .then(pipeline.upsert);
-            const result = await prisma.playlist({ playlist_id: id });
-            if(result) {
-              return result
+            if (upsert) {
+              await pipeline.mapToPrismaInput(playlist).then(pipeline.upsert);
+            }
+            const result = await ctx.prisma
+              .playlist({ playlist_id: id })
+              .$fragment(getFragment("PlaylistDetails"));
+            if (result) {
+              return result;
             } else {
-              throw new Error(`Could not retrieve playlist for is ${id}`)
+              throw new Error(`Could not retrieve playlist for is ${id}`);
             }
           } else {
             throw new Error(`Could not find playlist by id ${id}`);
