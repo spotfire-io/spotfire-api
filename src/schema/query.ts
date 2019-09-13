@@ -78,7 +78,7 @@ export const Query = prismaObjectType({
             ];
           } else {
             playlists = await spotify
-              .searchPlaylists(query)
+              .searchPlaylists(query, { limit: 50 })
               .then(resp => resp.body.playlists.items);
           }
         }
