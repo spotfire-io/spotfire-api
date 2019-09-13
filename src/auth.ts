@@ -27,6 +27,8 @@ export interface User {
   spotifyRefreshToken?: string;
   spotifyAccessToken?: string;
   spotifyAccessTokenExpiresAt?: number;
+  authorizationHeader?: string;
+  auth0AccessToken?: string;
 }
 
 const auth0 = new ManagementClient({
@@ -112,6 +114,18 @@ export const fetchSpotifyAccessToken = async (
 export const strategies = {
   setEmptyUserIfNoneDefined: new CustomStrategy(
     async ({ user }: Request, done) => {
+      done(null, user || {});
+    }
+  ),
+  addAuthorizationHeaderToUser: new CustomStrategy(
+    async ({ user, headers }: Request, done) => {
+      const authHeader = headers.authorization;
+      if (authHeader) {
+        user.authorizationHeader = authHeader;
+        if (authHeader.startsWith("Bearer ")) {
+          user.auth0AccessToken = authHeader.split(" ")[1];
+        }
+      }
       done(null, user || {});
     }
   ),

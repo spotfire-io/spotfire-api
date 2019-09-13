@@ -66,16 +66,13 @@ export const startPlaylistOptimization: NexusOutputFieldConfig<
     { prisma, user, spotify, limiters }: Context
   ) => {
     const jobStart = new Date();
+    if (!user || !user.auth0AccessToken) {
+      throw new Error("Auth0 Access Token not defined");
+    }
 
     if (user == undefined || user.spotifyRefreshToken == undefined) {
       throw Error("No user in request chain to fetch access token");
     }
-
-    const accessToken = fetchSpotifyAccessToken(
-      user.spotifyRefreshToken,
-      user.sub,
-      false
-    );
 
     const snapshotPromise = limiters.prisma.schedule(() =>
       prisma
@@ -207,7 +204,7 @@ export const startPlaylistOptimization: NexusOutputFieldConfig<
       data: { extract_path: extractPath, status: "EXTRACT_UPLOADED" }
     });
 
-    startLambda(job.id, extractPath, (await accessToken).token);
+    startLambda(job.id, extractPath, user.auth0AccessToken);
 
     return job;
   }

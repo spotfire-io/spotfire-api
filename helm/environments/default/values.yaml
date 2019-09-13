@@ -12,3 +12,7 @@ aws:
   s3_extract_bucket_name: spotfire-extracts
 prisma:
   port: 4466
+solver:
+  aws_region: us-east-1
+  lambda_name: aws-kotlin-jvm-gradle-test-solver
+  callback_endpoint: https://api.spotfire.spantree.net

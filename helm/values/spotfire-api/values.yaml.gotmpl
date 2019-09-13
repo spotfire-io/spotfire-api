@@ -20,6 +20,10 @@ prisma:
   {{ else }}
   api_secret: {{ .Environment.Values | get "prisma.api_secret" | quote }}
   {{ end}}
+solver:
+  lambda_name: {{ .Environment.Values | get "solver.lambda_name" | quote }}
+  aws_region: {{ .Environment.Values | get "solver.aws_region" | quote }}
+  callback_endpoint: {{ .Environment.Values | get "solver.callback_endpoint" | quote }}
 service:
   port: 4001
 ingress:

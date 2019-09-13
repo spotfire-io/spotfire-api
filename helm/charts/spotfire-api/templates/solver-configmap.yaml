@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: solver-config
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{.Chart.Name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  AWS_LAMBDA_REGION: {{ .Values.solver.aws_region | quote }}
+  AWS_LAMBDA_FUNCTION_NAME: {{ .Values.solver.lambda_name | quote }}
+  AWS_LAMBDA_CALLBACK_ENDPOINT: {{ .Values.solver.callback_endpoint | quote }}

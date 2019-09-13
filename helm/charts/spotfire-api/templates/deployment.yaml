@@ -40,6 +40,8 @@ spec:
               name: prisma-config
           - secretRef:
               name: prisma-secrets
+          - configMapRef:
+              name: solver-config
           ports:
             - name: http
               containerPort: 4001
