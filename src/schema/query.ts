@@ -118,22 +118,27 @@ export const Query = prismaObjectType({
         if (!id) {
           throw new Error("Could not find an ID for playlist");
         } else {
-          const { playlist: pipeline } = getPipelinesIfExists(ctx);
-          const playlist = await pipeline.spotifyLoader.load(id);
-          if (playlist) {
-            if (upsert) {
-              await pipeline.mapToPrismaInput(playlist).then(pipeline.upsert);
-            }
-            const result = await ctx.prisma
-              .playlist({ playlist_id: id })
-              .$fragment(PlaylistDetails);
-            if (result) {
-              return result;
+          if (upsert) {
+            const { playlist: pipeline } = getPipelinesIfExists(ctx);
+            const playlist = await pipeline.spotifyLoader.load(id);
+            if (playlist) {
+              if (upsert) {
+                await pipeline.mapToPrismaInput(playlist).then(pipeline.upsert);
+              }
             } else {
-              throw new Error(`Could not retrieve playlist for is ${id}`);
+              throw new Error(
+                `Could not find playlist by id ${id} on Spotifys`
+              );
             }
+          }
+
+          const result = await ctx.prisma
+            .playlist({ playlist_id: id })
+            .$fragment(PlaylistDetails);
+          if (result) {
+            return result;
           } else {
-            throw new Error(`Could not find playlist by id ${id}`);
+            throw new Error(`Could not retrieve playlist for is ${id}`);
           }
         }
       }

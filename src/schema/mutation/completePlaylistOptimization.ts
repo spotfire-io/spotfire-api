@@ -5,6 +5,7 @@ import Bottleneck from "bottleneck";
 import { AuthenticationError } from "apollo-server-core";
 import { loadPlaylistTracks } from "./loadPlaylistTracks";
 import logger from "../../logger";
+import { Playlist as SpotifyPlaylist } from "spotify-web-api-node";
 
 export const completePlaylistOptimization: FieldOutConfig<
   "Mutation",
@@ -22,12 +23,8 @@ export const completePlaylistOptimization: FieldOutConfig<
       list: true
     })
   },
-  resolve: async (
-    root,
-    { jobId, trackIds },
-    { prisma, spotify, pipelines, limiters },
-    ctx: Context
-  ) => {
+  resolve: async (root, { jobId, trackIds }, ctx: Context) => {
+    const { prisma, spotify, pipelines, limiters } = ctx;
     if (spotify == null) {
       throw new AuthenticationError("Must authenticate with Spotify");
     }
@@ -83,17 +80,21 @@ export const completePlaylistOptimization: FieldOutConfig<
       throw new Error("Could not find resolver for loadPlaylistTracks");
     }
 
+    const snapshotId = await spotify
+      .getPlaylist(optimizedPlaylist.id)
+      .then(p => p.body.snapshot_id);
+
     const playlist = await loadPlaylistTracks.resolve!!(
       {},
       {
         playlist_id: optimizedPlaylist.id,
-        snapshot_id: optimizedPlaylist.snapshot_id
+        snapshot_id: snapshotId
       },
       ctx,
       undefined
     );
 
-    prisma.updateOptimizationJob({
+    await prisma.updateOptimizationJob({
       where: { id: jobId },
       data: {
         status: "SAVED",

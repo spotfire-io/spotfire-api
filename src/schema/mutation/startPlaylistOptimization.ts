@@ -10,13 +10,17 @@ import { format as dateFormat } from "date-fns";
 
 import { Context } from "../../utils";
 import logger from "../../logger";
+import { fetchSpotifyAccessToken } from "../../auth";
 
 import { PlaylistSnapshotForOptimization } from "../../fragments/PlaylistSnapshotForOptimization";
 import { KeyForOptimization } from "../../fragments/KeyForOptimization";
 import { PlaylistTrackForOptimization } from "../../fragments/PlaylistTrackForOptimization";
 import { ArtistForOptimization } from "../../fragments/ArtistForOptimization";
 import { AlbumForOptimization } from "../../fragments/AlbumForOptimization";
-import { PlaylistSnapshot } from "../../generated/prisma-client";
+import {
+  PlaylistSnapshot,
+  OptimizationJob
+} from "../../generated/prisma-client";
 
 require("dotenv-flow").config();
 
@@ -59,9 +63,20 @@ export const startPlaylistOptimization: NexusOutputFieldConfig<
   resolve: async (
     root,
     { playlist_id, snapshot_id, playlist_name },
-    { prisma, spotify, pipelines, limiters }: Context
+    { prisma, user, spotify, limiters }: Context
   ) => {
     const jobStart = new Date();
+
+    if (user == undefined || user.spotifyRefreshToken == undefined) {
+      throw Error("No user in request chain to fetch access token");
+    }
+
+    const accessToken = fetchSpotifyAccessToken(
+      user.spotifyRefreshToken,
+      user.sub,
+      false
+    );
+
     const snapshotPromise = limiters.prisma.schedule(() =>
       prisma
         .playlistSnapshot({ snapshot_id })
@@ -192,8 +207,48 @@ export const startPlaylistOptimization: NexusOutputFieldConfig<
       data: { extract_path: extractPath, status: "EXTRACT_UPLOADED" }
     });
 
+    startLambda(job.id, extractPath, (await accessToken).token);
+
     return job;
   }
+};
+
+/*
+AWS_LAMBDA_REGION=us-east-1
+AWS_LAMBDA_FUNCTION_NAME=aws-kotlin-jvm-gradle-test-solver
+AWS_LAMBDA_CALLBACK_ENDPOINT=https://api.spotfire.spantree.net
+*/
+
+const startLambda = (
+  jobId: string,
+  extractPath: string,
+  accessToken: string
+) => {
+  const lambda = new aws.Lambda({ region: process.env["AWS_LAMBDA_REGION"] });
+  const lambdaName = process.env["AWS_LAMBDA_FUNCTION_NAME"];
+  if (lambdaName == undefined) {
+    throw new Error("Lambda name is not defined");
+  }
+  const params = {
+    FunctionName: lambdaName,
+    InvocationType: "Event",
+    Payload: JSON.stringify({
+      job: {
+        id: jobId,
+        extractPath: extractPath
+      },
+      accessToken: accessToken,
+      graphqlEndpointURL: "https://api.spotfire.spantree.net"
+    })
+  };
+
+  const resp = lambda.invoke(params, (error, data) => {
+    if (error) {
+      logger.error("Error invoking lambda", error);
+    } else {
+      logger.info("Response from lambda", data);
+    }
+  });
 };
 
 export default startPlaylistOptimization;

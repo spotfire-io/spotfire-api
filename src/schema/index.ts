@@ -9,6 +9,7 @@ export * from "./subscription";
 export * from "./playlist";
 export * from "./image";
 export * from "./optimizationJob";
+export * from "./solverStatusUpdate";
 
 const overrideTypeId = (
   typeName: PrismaObjectTypeNames,

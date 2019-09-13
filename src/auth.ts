@@ -63,13 +63,13 @@ const caches = {
 };
 
 interface OAuthAccessToken {
-  token: String;
+  token: string;
   expiresAt: number;
 }
 
-const fetchSpotifyAccessToken = async (
+export const fetchSpotifyAccessToken = async (
   refreshToken: string,
-  userId: string,
+  userId?: string,
   useCache: boolean = true
 ) => {
   const now = new Date().getTime();

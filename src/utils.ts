@@ -14,6 +14,7 @@ import {
   UserPipeline
 } from "./pipelines";
 import { GenrePipeline } from "./pipelines/genre";
+import { User } from "./auth";
 
 export interface Limiters {
   spotify: Bottleneck;
@@ -107,6 +108,7 @@ export interface Context {
   pipelines?: Pipelines;
   prisma: Prisma;
   limiters: Limiters;
+  user?: User;
 }
 
 export const getSpotifyIfExists = (ctx: Context): SpotifyWebApi => {

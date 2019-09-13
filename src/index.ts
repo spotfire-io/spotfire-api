@@ -52,6 +52,7 @@ const server = new ApolloServer({
   schema,
   tracing: true,
   debug: true,
+  introspection: true,
   playground: false,
   formatError: error => {
     logger.error(error);
@@ -61,6 +62,7 @@ const server = new ApolloServer({
     const user: User = req.user;
     const context: Context = { prisma, limiters };
     if (user && user.spotifyAccessToken) {
+      context.user = user;
       context.spotify = new SpotifyWebApi({
         clientId: process.env.SPOTIFY_CLIENT_ID,
         clientSecret: process.env.SPOTIFY_CLIENT_SECRET

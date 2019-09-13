@@ -99,6 +99,7 @@ export class PlaylistPipeline extends Pipeline<
         "description",
         "name",
         "uri",
+        "href",
         "public",
         "collaborative"
       )
