@@ -8,6 +8,7 @@ export * from "./mutation";
 export * from "./subscription";
 export * from "./playlist";
 export * from "./image";
+export * from "./optimizationJob";
 
 const overrideTypeId = (
   typeName: PrismaObjectTypeNames,

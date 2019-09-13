@@ -35,7 +35,7 @@ postgresql:
   persistence:
     enabled: true
     {{ if eq .Environment.Name "dev" }}
-    password: {{ .Environment.Values | get "postgres.password_unencrypted" | quote }}
+    postgresPassword: {{ .Environment.Values | get "postgres.password_unencrypted" | quote }}
     {{ else }}
-    password: {{ .Environment.Values | get "postgres.password" | quote }}
+    postgresPassword: {{ .Environment.Values | get "postgres.password" | quote }}
     {{ end}}

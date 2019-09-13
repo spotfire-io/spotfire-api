@@ -1,7 +1,6 @@
 JENKINS       ?= false
 KUBE_REGION   ?= eastus
-ACR_REPO_NAME ?= crgenericglobalmasxeastu
-IMAGE_REPO    ?= docker.io/
+IMAGE_REPO    ?= spotfire/
 IMAGE_NAME    := spotfire-api
 IMAGE_TAG     := latest
 

@@ -11,7 +11,7 @@ import { PlaylistSnapshotUpdateInput } from "../../generated/prisma-client";
 
 require("dotenv-flow").config();
 
-const loadPlaylistTracks: NexusOutputFieldConfig<
+export const loadPlaylistTracks: NexusOutputFieldConfig<
   "Mutation",
   "loadPlaylistTracks"
 > = {

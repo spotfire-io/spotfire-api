@@ -495,7 +495,6 @@ declare module "spotify-web-api-node" {
     );
 
     addTracksToPlaylist(
-      userId: SpotifyWebApi.UserId,
       playlistId: SpotifyWebApi.PlaylistId,
       tracks: SpotifyWebApi.TrackId[],
       options?: SpotifyWebApi.AddTrackToPlaylistOptions

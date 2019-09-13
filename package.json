@@ -1,4 +1,6 @@
 {
+  "name": "spotfire-api",
+  "version": "0.8.3",
   "licenses": [
     {
       "type": "Apache-2.0",
@@ -9,6 +11,7 @@
     "build": "rimraf dist generated && prisma generate && nexus-prisma-generate --output ./src/generated/nexus-prisma && tsc",
     "prisma-deploy": "prisma deploy --env-file .env.${NODE_ENV}",
     "prisma-generate": "prisma generate --env-file .env.${NODE_ENV}",
+    "prisma-playground": "prisma playground --env-file .env.${NODE_ENV}",
     "start": "ts-node src/index.ts",
     "dev": "ts-node-dev --transpileOnly ./src/index.ts",
     "test": "jest",

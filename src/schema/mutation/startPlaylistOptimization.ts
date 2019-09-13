@@ -9,12 +9,14 @@ import sha256File from "sha256-file";
 import { format as dateFormat } from "date-fns";
 
 import { Context } from "../../utils";
+import logger from "../../logger";
 
 import { PlaylistSnapshotForOptimization } from "../../fragments/PlaylistSnapshotForOptimization";
 import { KeyForOptimization } from "../../fragments/KeyForOptimization";
 import { PlaylistTrackForOptimization } from "../../fragments/PlaylistTrackForOptimization";
 import { ArtistForOptimization } from "../../fragments/ArtistForOptimization";
 import { AlbumForOptimization } from "../../fragments/AlbumForOptimization";
+import { PlaylistSnapshot } from "../../generated/prisma-client";
 
 require("dotenv-flow").config();
 
@@ -35,7 +37,7 @@ const writeToJsonFile = path => {
   };
 };
 
-const optimizePlaylist: NexusOutputFieldConfig<
+export const startPlaylistOptimization: NexusOutputFieldConfig<
   "Mutation",
   "optimizePlaylist"
 > = {
@@ -48,27 +50,35 @@ const optimizePlaylist: NexusOutputFieldConfig<
     snapshot_id: stringArg({
       description: "The playlist snapshot ID",
       nullable: false
+    }),
+    playlist_name: stringArg({
+      description: "The name for the new playlist",
+      nullable: true
     })
   },
   resolve: async (
     root,
-    { playlist_id, snapshot_id },
+    { playlist_id, snapshot_id, playlist_name },
     { prisma, spotify, pipelines, limiters }: Context
   ) => {
     const jobStart = new Date();
-    const snapshot = await limiters.prisma.schedule(() =>
+    const snapshotPromise = limiters.prisma.schedule(() =>
       prisma
         .playlistSnapshot({ snapshot_id })
-        .$fragment(PlaylistSnapshotForOptimization)
+        .$fragment<PlaylistSnapshot>(PlaylistSnapshotForOptimization)
     );
+    const snapshot = await snapshotPromise;
     if (!snapshot) {
       throw Error("Snapshot not found");
     }
 
+    logger.info("Creating optimization job for snapshot", { snapshot_id });
+
     let job = await prisma.createOptimizationJob({
       original_playlist_snapshot: { connect: { snapshot_id } },
       start: new Date(),
-      status: "INITIALIZED"
+      status: "TRACKS_LOADED",
+      playlist_name: playlist_name || `Unnamed Spotfired Playlist`
     });
 
     const { name: tmpDir, removeCallback: dirCleanup } = tmp.dirSync();
@@ -154,30 +164,36 @@ const optimizePlaylist: NexusOutputFieldConfig<
       .map(key => `${key}=${s3Tags[key]}`)
       .join("&");
 
-    await fs.readFile(tarFilePath, (err, data: Buffer) => {
+    await fs.readFile(tarFilePath, async (err, data: Buffer) => {
       if (err) {
         throw err;
       }
-      s3.putObject({
-        Bucket: extractBucketName,
-        Key: s3Key,
-        Body: data,
-        // this is safe so long as bucket listing is private and the
-        // filename is obscured by the SHA of its contents
-        ACL: "public-read",
-        Tagging: s3TagStr
-      }).promise();
+      const result = await s3
+        .putObject({
+          Bucket: extractBucketName,
+          Key: s3Key,
+          Body: data,
+          // this is safe so long as bucket listing is private and the
+          // filename is obscured by the SHA of its contents
+          ACL: "public-read",
+          Tagging: s3TagStr
+        })
+        .promise();
+
+      if (result.$response.error) {
+        throw new Error("Error uploading file: ${result.$response.error}");
+      }
     });
 
     const extractPath = `https://s3.amazonaws.com/${extractBucketName}/${s3Key}`;
 
     job = await prisma.updateOptimizationJob({
       where: { id: job.id },
-      data: { extract_path: extractPath }
+      data: { extract_path: extractPath, status: "EXTRACT_UPLOADED" }
     });
 
     return job;
   }
 };
 
-export default optimizePlaylist;
+export default startPlaylistOptimization;

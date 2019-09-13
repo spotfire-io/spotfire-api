@@ -226,16 +226,18 @@ type AudioAnalysisSection {
 }
 
 enum OptimizationJobStatus {
-  INITIALIZED
-  EXTRACTED
-  OPTIMIZING
-  DONE
+  TRACKS_LOADED
+  EXTRACT_UPLOADED
+  OPTIMIZED
+  SAVED
 }
 
 type OptimizationJob {
   id: ID! @id @unique
-  original_playlist_snapshot: PlaylistSnapshot!
-  status: OptimizationJobStatus! @default(value: INITIALIZED)
+  original_playlist_snapshot: PlaylistSnapshot! @relation(link: INLINE, name: "OptimizationOriginalSnapshot")
+  new_playlist_snapshot: PlaylistSnapshot @relation(link: INLINE, name: "OptimizationNewSnapshot")
+  status: OptimizationJobStatus! @default(value: TRACKS_LOADED)
+  playlist_name: String!
   extract_path: String
   start: DateTime!
   end: DateTime
