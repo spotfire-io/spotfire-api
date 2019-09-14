@@ -56,10 +56,12 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
 
     const snapshot_id = playlist.latest_snapshot_id;
 
-    const snapshot = await prisma.updatePlaylistSnapshot({
-      where: { snapshot_id },
-      data: { status: "LOADING" }
-    });
+    const snapshot = await limiters.prisma.schedule(() =>
+      prisma.updatePlaylistSnapshot({
+        where: { snapshot_id },
+        data: { status: "LOADING" }
+      })
+    );
 
     if (!snapshot) {
       throw new Error(`Cannot find playlist snapshot ${snapshot_id}`);
@@ -94,7 +96,7 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
       500
     );
 
-    if (snapshot.status == "INITIALIZED") {
+    if (snapshot.status == "INITIALIZED" || snapshot.status == "LOADING") {
       // clear existing tracks in case there's overlap
       await limiters.prisma.schedule(() =>
         prisma.deleteManyPlaylistTracks({
