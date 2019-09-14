@@ -56,7 +56,10 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
 
     const snapshot_id = playlist.latest_snapshot_id;
 
-    const snapshot = await prisma.playlistSnapshot({ snapshot_id });
+    const snapshot = await prisma.updatePlaylistSnapshot({
+      where: { snapshot_id },
+      data: { status: "LOADING" }
+    });
 
     if (!snapshot) {
       throw new Error(`Cannot find playlist snapshot ${snapshot_id}`);
