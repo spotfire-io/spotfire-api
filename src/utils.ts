@@ -23,8 +23,8 @@ export interface Limiters {
 
 export const limiters: Limiters = {
   spotify: new Bottleneck({
-    maxConcurrent: 6,
-    minTime: 200
+    maxConcurrent: 8,
+    minTime: 100
   }),
   prisma: new Bottleneck({
     maxConcurrent: 16,
