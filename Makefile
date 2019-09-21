@@ -17,8 +17,6 @@ LATEST_IMAGE_SPEC = $(if $(IMAGE_REPO),$(IMAGE_REPO)$(IMAGE_NAME):latest,$(IMAGE
 kubeconfig:
 	kubectl config use-context $(KUBE_CONTEXT)
 
-.PHONY: registry-login build test push diff promote promotion-status dotenv-encrypt
-
 ## dotenv-encrypt: encrypts your .env files using sops
 dotenv-encrypt:
 	sops -e --input-type dotenv .env.dev > .env.dev.enc
@@ -56,11 +54,6 @@ pull-image:
 
 pull-image-latest:
 	docker pull $(LATEST_IMAGE_SPEC)
-
-## push-image: pushes the :latest image to the defined registry
-push-image: IMAGE_TAG=latest
-push-image: build-image
-	docker push $(IMAGE_SPEC)
 
 ## push-image: pushes the :latest image to the defined registry
 push-image: IMAGE_TAG=latest
