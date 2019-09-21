@@ -1,11 +1,29 @@
 import { prismaObjectType } from "nexus-prisma";
-import { stringArg, booleanArg, subscriptionField } from "nexus/dist";
+import { stringArg, booleanArg, subscriptionField, intArg } from "nexus/dist";
 import { Context, getSpotifyIfExists, getPipelinesIfExists } from "../utils";
 import _ from "lodash";
+import {
+  Prisma,
+  PlaylistSnapshot,
+  FragmentableArray
+} from "../generated/prisma-client";
 import { PlaylistDetails } from "../fragments/PlaylistDetails";
+import { gql } from "apollo-server-core";
+import { PlaylistSnapshotStatus } from "../fragments/PlaylistSnapshotStatus";
 
-const transformPlaylistResults = async (results: any[]) => {
+const transformPlaylistResults = async (results: any[], prisma: Prisma) => {
+  const snapshotIds = results.map(p => p.snapshot_id);
+
+  const snapshots = await prisma
+    .playlistSnapshots({
+      where: { snapshot_id_in: snapshotIds }
+    })
+    .$fragment<FragmentableArray<PlaylistSnapshot>>(PlaylistSnapshotStatus);
+
+  const statusLookup = _.keyBy(snapshots, "snapshot_id");
+
   return results.map(async p => {
+    const snapshotId = p.snapshot_id;
     const result = {
       ..._.pick(
         p,
@@ -18,7 +36,13 @@ const transformPlaylistResults = async (results: any[]) => {
         "public",
         "collaborative"
       ),
-      latest_snapshot_id: p.snapshot_id,
+      latest_snapshot_id: snapshotId,
+      latest_snapshot: statusLookup[snapshotId] || {
+        id: snapshotId,
+        status: "NOT_LOADED",
+        track_count: p.tracks.total,
+        loaded_tracks: 0
+      },
       owner: {
         ..._.pick(p.owner, "display_name", "id", "href", "uri")
       }
@@ -58,16 +82,23 @@ export const Query = prismaObjectType({
         query: stringArg({
           description: "Search query or URI of playlist",
           nullable: true
+        }),
+        limit: intArg({
+          description: "Number of search results returned",
+          nullable: true,
+          default: 50
         })
       },
-      resolve: async (root, { query }, ctx: Context) => {
+      resolve: async (root, { query, limit }, ctx: Context) => {
         const spotify = getSpotifyIfExists(ctx);
         const pipelines = getPipelinesIfExists(ctx);
         let playlists: any[];
         if (!query) {
-          const me = await spotify.getMe().then(resp => resp.body);
+          const userId =
+            _.get(ctx, "user.spotifyUserId") ||
+            (await spotify.getMe().then(resp => resp.body.id));
           playlists = await spotify
-            .getUserPlaylists(me.id)
+            .getUserPlaylists(userId, { limit: limit })
             .then(resp => resp.body.items);
         } else {
           const urlMatch = query.match(playlistUrlPattern);
@@ -78,11 +109,11 @@ export const Query = prismaObjectType({
             ];
           } else {
             playlists = await spotify
-              .searchPlaylists(query, { limit: 50 })
+              .searchPlaylists(query, { limit: limit })
               .then(resp => resp.body.playlists.items);
           }
         }
-        return transformPlaylistResults(playlists);
+        return transformPlaylistResults(playlists, ctx.prisma);
       }
     });
     t.field("playlist", {
