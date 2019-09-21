@@ -35,7 +35,11 @@ export class AudioFeaturesPipeline extends Pipeline<
                 const lookup = _.keyBy(resp.body["audio_features"], "id");
                 return ids.map(id => lookup[id]);
               })
-              .catch(onError)
+              .catch(
+                onError(`Error retrieving audio features from Spotify`, {
+                  track_ids: ids
+                })
+              )
         );
       },
       { maxBatchSize: 100 }

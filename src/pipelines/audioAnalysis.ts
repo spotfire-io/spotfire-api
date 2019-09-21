@@ -37,7 +37,11 @@ export class AudioAnalysisPipeline extends Pipeline<
                     const lookup = _.keyBy(resp.body["audio_analysus"], "id");
                     return ids.map(id => lookup[id]);
                   })
-                  .catch(onError)
+                  .catch(
+                    onError(`Error retrieving audio analysis from Spotify`, {
+                      track_id: id
+                    })
+                  )
             )
           )
         );

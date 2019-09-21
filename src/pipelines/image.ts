@@ -71,12 +71,20 @@ export class ImagePipeline extends Pipeline<
   upsertAndConnectMany = async (spotifyImages: SpotifyWebApi.Image[]) => {
     return await Promise.all<Prisma.ImageWhereUniqueInput>(
       spotifyImages.map(async img => {
-        const cacheHit = await this.prismaLoader.load(img.url).catch(onError);
+        const cacheHit = await this.prismaLoader.load(img.url).catch(
+          onError(`Error loading cached image from Prisma`, {
+            image_url: img.url
+          })
+        );
         if (cacheHit) return this.whereUnique(cacheHit);
         const imgInput = this.mapToPrismaInput(img);
         return await this.upsert(imgInput)
           .then(this.whereUnique)
-          .catch(onError);
+          .catch(
+            onError(`Error upserting image into Prisma`, {
+              image_url: img.url
+            })
+          );
       })
     );
   };

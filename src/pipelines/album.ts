@@ -46,7 +46,11 @@ export class AlbumPipeline extends Pipeline<
                 const lookup = _.keyBy(resp.body.albums, "id");
                 return ids.map(id => lookup[id]);
               })
-              .catch(onError)
+              .catch(
+                onError(`Error retrieving albums from Spotify`, {
+                  album_ids: ids
+                })
+              )
         ),
       { maxBatchSize: 20 }
     );
@@ -84,17 +88,29 @@ export class AlbumPipeline extends Pipeline<
       artists: {
         connect: await this.artistPipeline
           .upsertAndConnectMany(spotifyAlbum.artists)
-          .catch(onError)
+          .catch(
+            onError(`Error upserting and connecting artists`, {
+              artist_ids: spotifyAlbum.artists.map(a => a.id)
+            })
+          )
       },
       genres: {
         connect: await this.genrePipeline
           .upsertAndConnectMany(spotifyAlbum.genres)
-          .catch(onError)
+          .catch(
+            onError(`Error upserting and connecting genres`, {
+              genres: spotifyAlbum.genres
+            })
+          )
       },
       images: {
         connect: await this.imagePipeline
           .upsertAndConnectMany(spotifyAlbum.images)
-          .catch(onError)
+          .catch(
+            onError(`Error upserting and connecting images`, {
+              image_urls: spotifyAlbum.images.map(i => i.url)
+            })
+          )
       },
       ..._.pick(spotifyAlbum, "uri", "href", "label", "name", "popularity")
     };

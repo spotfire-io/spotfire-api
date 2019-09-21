@@ -42,7 +42,11 @@ export class ArtistPipeline extends Pipeline<
                 const lookup = _.keyBy(resp.body.artists, "id");
                 return ids.map(id => lookup[id]);
               })
-              .catch(onError)
+              .catch(
+                onError(`Error retrieving artists from Spotify`, {
+                  artist_ids: ids
+                })
+              )
         ),
       { maxBatchSize: 50 }
     );
@@ -72,12 +76,25 @@ export class ArtistPipeline extends Pipeline<
       genres: {
         connect: await this.genrePipeline
           .upsertAndConnectMany(spotifyArtist.genres)
-          .catch(onError)
+          .catch(
+            onError(
+              `Error upsetting and connecting artist genres into Primsa`,
+              { artist_id: spotifyArtist.id, genres: spotifyArtist.genres }
+            )
+          )
       },
       images: {
         connect: await this.imagePipeline
           .upsertAndConnectMany(spotifyArtist.images)
-          .catch(onError)
+          .catch(
+            onError(
+              `Error upsetting and connecting artist images into Primsa`,
+              {
+                artist_id: spotifyArtist.id,
+                image_urls: spotifyArtist.images.map(i => i.url)
+              }
+            )
+          )
       },
       ..._.pick(spotifyArtist, "name", "uri", "href", "popularity")
     };
@@ -115,16 +132,26 @@ export class ArtistPipeline extends Pipeline<
     return _.compact(
       await Promise.all<Prisma.ArtistWhereUniqueInput | undefined>(
         spotifyArtists.map(async ({ id }) => {
-          const prismaHit = await this.prismaLoader.load(id).catch(onError);
+          const prismaHit = await this.prismaLoader
+            .load(id)
+            .catch(
+              onError(`Error retrieving artist from cache`, { artist_id: id })
+            );
           if (prismaHit) return this.whereUnique(prismaHit);
-          const spotifyHit = await this.spotifyLoader.load(id).catch(onError);
+          const spotifyHit = await this.spotifyLoader
+            .load(id)
+            .catch(
+              onError(`Error retrieving artist from Spotify`, { artist_id: id })
+            );
           if (spotifyHit) {
             const input = await this.mapToPrismaInput(spotifyHit).catch(
-              onError
+              onError(`Error mapping artist to Spotify Input`)
             );
             const artist = await this.upsert(input)
               .then(this.whereUnique)
-              .catch(onError);
+              .catch(
+                onError(`Error upserting Artist into Prisma`, { artist_id: id })
+              );
           } else {
             console.warn(`Could not find artist with id ${id}`);
           }

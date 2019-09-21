@@ -70,12 +70,16 @@ export class GenrePipeline extends Pipeline<
   upsertAndConnectMany = async (names: string[]) => {
     return await Promise.all<Prisma.ImageWhereUniqueInput>(
       names.map(async name => {
-        const cacheHit = await this.prismaLoader.load(name).catch(onError);
+        const cacheHit = await this.prismaLoader.load(name).catch(
+          onError(`Error retrieving cached genre from Prisma`, {
+            genre: name
+          })
+        );
         if (cacheHit) return this.whereUnique(cacheHit);
         const input = this.mapToPrismaInput(name);
         return await this.upsert(input)
           .then(this.whereUnique)
-          .catch(onError);
+          .catch(onError(`Error upserting genre into Primsa`, { genre: name }));
       })
     );
   };
