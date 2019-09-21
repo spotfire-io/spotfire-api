@@ -36,7 +36,11 @@ export class PlaylistPipeline extends Pipeline<
             () =>
               this.spotify!.getPlaylist(id)
                 .then(resp => resp.body)
-                .catch(onError)
+                .catch(
+                  onError(`Error loading playlists from Spotify`, {
+                    playlist_ids: ids
+                  })
+                )
           )
         )
       ),
@@ -64,7 +68,11 @@ export class PlaylistPipeline extends Pipeline<
         .playlistSnapshot({
           snapshot_id
         })
-        .catch(onError)
+        .catch(
+          onError(`Error checking snapshot existence`, {
+            snapshot_id
+          })
+        )
     );
 
     const snapshots: Prisma.PlaylistSnapshotCreateManyWithoutPlaylistInput = snapshotExists
@@ -87,12 +95,20 @@ export class PlaylistPipeline extends Pipeline<
       images: {
         connect: await this.imagePipeline
           .upsertAndConnectMany(spotifyVal.images)
-          .catch(onError)
+          .catch(
+            onError(`Error upserting images for snapshot`, {
+              snapshot_id
+            })
+          )
       },
       owner: {
         connect: await this.userPipeline
           .upsertAndConnect(spotifyVal.owner.id)
-          .catch(onError)
+          .catch(
+            onError(`Error upserting playlist owner`, {
+              user_id: spotifyVal.owner.id
+            })
+          )
       },
       ..._.pick(
         spotifyVal,

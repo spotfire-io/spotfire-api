@@ -52,17 +52,20 @@ export class TrackPipeline extends Pipeline<
     if (!spotifyTrack.album.id) {
       throw new Error(`No album found for track ${spotifyTrack.id}`);
     }
+    const { album, artists } = spotifyTrack;
     return {
       track_id: spotifyTrack.id,
       album: {
         connect: await this.albumPipeline
-          .upsertAndConnect(spotifyTrack.album.id)
-          .catch(onError)
+          .upsertAndConnect(album.id)
+          .catch(onError(`Error retrieving album`, { album_id: album.id }))
       },
       artists: {
-        connect: await this.artistPipeline
-          .upsertAndConnectMany(spotifyTrack.artists)
-          .catch(onError)
+        connect: await this.artistPipeline.upsertAndConnectMany(artists).catch(
+          onError(`Error retrieving artists`, {
+            artist_ids: artists.map(a => a.id)
+          })
+        )
       },
       ..._.pick(
         spotifyTrack,
@@ -89,7 +92,7 @@ export class TrackPipeline extends Pipeline<
             update: input,
             create: input
           })
-          .catch(onError)
+          .catch(onError(`Error upserting track into Prisma`, input))
     );
   };
 }

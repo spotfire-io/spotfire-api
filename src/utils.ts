@@ -49,10 +49,15 @@ Object.keys(limiters).forEach(name => {
   // });
 });
 
-export const onError = (err: Error) => {
-  console.error("A Spotify error occurred", err);
-  throw err;
+export const onError = (message: string, data: any = {}) => (err: Error) => {
+  logger.error(message, { ...data, ...err });
+  throw { ...err, ...data, message: `${message}: ${err.message}` };
 };
+
+// export const onError = (err: Error) => {
+//   console.error("A Spotify error occurred", err);
+//   throw err;
+// };
 
 export interface Pipelines {
   album: AlbumPipeline;

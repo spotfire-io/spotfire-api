@@ -46,7 +46,7 @@ export const Query = prismaObjectType({
       "keys",
       "optimizationJob",
       "optimizationJobs",
-      // "playlistSnapshot",
+      "playlistSnapshot",
       "track",
       "tracks",
       "playlistsConnection"

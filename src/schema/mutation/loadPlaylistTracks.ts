@@ -120,7 +120,13 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
                 limit: pageSize,
                 offset
               })
-              .catch(onError)
+              .catch(
+                onError(`Error getting playlist tracks for playlist`, {
+                  playlist,
+                  limit: pageSize,
+                  offset
+                })
+              )
         );
         await Promise.all(
           body.items.map(
@@ -145,26 +151,44 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
                       order,
                       ..._.pick(item, "is_local", "added_at")
                     };
-                    if (item.added_by) {
+                    // Note: songs added by spotify don't specified a user id in the added_by field
+                    const addedByUserId = _.get(item, "added_by.id", "spotify");
+                    if (addedByUserId) {
                       ptInput.added_by = {
                         connect: await pipelines.user
-                          .upsertAndConnect(item.added_by.id)
-                          .catch(onError)
+                          .upsertAndConnect(addedByUserId)
+                          .catch(
+                            onError(
+                              `Error upserting playlist track added by user`,
+                              { user_id: addedByUserId }
+                            )
+                          )
                       };
                     }
-                    return await limiters.prisma.schedule(
-                      {
-                        id: `playlistTrack:create:${playlist_id}:${order}:${Math.random().toString(
-                          16
-                        )}`
-                      },
-                      () => prisma.createPlaylistTrack(ptInput).track()
-                    );
+                    return await limiters.prisma
+                      .schedule(
+                        {
+                          id: `playlistTrack:create:${playlist_id}:${order}:${Math.random().toString(
+                            16
+                          )}`
+                        },
+                        () => prisma.createPlaylistTrack(ptInput).track()
+                      )
+                      .catch(
+                        onError(
+                          `Error creating playlist track in Prisma`,
+                          ptInput
+                        )
+                      );
                   })
                   .then(async track => {
                     await pipelines.audioFeatures
-                      .upsertAndConnect(track.uri!)
-                      .catch(onError);
+                      .upsertAndConnect(track.id)
+                      .catch(
+                        onError(`Error getting audio features`, {
+                          track_id: track.id
+                        })
+                      );
                     return track;
                   })
                   .then(() =>
@@ -176,7 +200,13 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
                       snapshot.track_count
                     )
                   )
-                  .catch(onError);
+                  .catch(
+                    onError("Error updating playlist snapshot status", {
+                      playlist_id,
+                      snapshot_id,
+                      loaded_count: loadedCount
+                    })
+                  );
               } catch (error) {
                 logger.error("Error occurred loading playlist track", {
                   spotify_track_id: spotifyTrack.id,

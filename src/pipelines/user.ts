@@ -31,7 +31,11 @@ export class UserPipeline extends Pipeline<
               () =>
                 this.spotify!.getUser(id)
                   .then(resp => resp.body)
-                  .catch(onError)
+                  .catch(
+                    onError(`Error retrieving users from Spotify`, {
+                      user_ids: ids
+                    })
+                  )
             )
           )
         ),
@@ -51,7 +55,11 @@ export class UserPipeline extends Pipeline<
                 const lookup = _.keyBy(r, "user_id");
                 return ids.map(id => lookup[id]);
               })
-              .catch(onError)
+              .catch(
+                onError(`Error loading users from Prisma`, {
+                  user_ids: ids
+                })
+              )
         ),
       { maxBatchSize: 100 }
     );
