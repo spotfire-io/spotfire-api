@@ -108,7 +108,12 @@ export class AudioFeaturesPipeline extends Pipeline<
             if (
               err.message.startsWith("A unique constraint would be violated on")
             ) {
-              return this.prisma.audioFeatures(where);
+              const found = this.prisma.audioFeatures(where);
+              if (found) {
+                return found;
+              } else {
+                throw err;
+              }
             } else {
               throw err;
             }

@@ -15,7 +15,6 @@ export const Playlist = prismaObjectType({
       nullable: true,
       resolve: async (root, args, { prisma }: Context) => {
         const snapshot_id = root.latest_snapshot_id;
-        console.log("latest_snapshot", root.latest_snapshot);
         const found =
           root.latest_snapshot ||
           (await prisma.playlistSnapshot({ snapshot_id }));

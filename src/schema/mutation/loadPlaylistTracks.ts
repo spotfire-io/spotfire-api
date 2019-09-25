@@ -183,10 +183,10 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
                   })
                   .then(async track => {
                     await pipelines.audioFeatures
-                      .upsertAndConnect(track.id)
+                      .upsertAndConnect(track.uri!)
                       .catch(
                         onError(`Error getting audio features`, {
-                          track_id: track.id
+                          track_id: track.track_id
                         })
                       );
                     return track;
@@ -213,6 +213,13 @@ export const loadPlaylistTracks: NexusOutputFieldConfig<
                   track_name: spotifyTrack.name,
                   error
                 });
+                updatePlaylistSnapshotLoaded(
+                  prisma,
+                  playlist_id,
+                  snapshot_id,
+                  ++loadedCount,
+                  snapshot.track_count
+                );
                 throw error;
               }
             }

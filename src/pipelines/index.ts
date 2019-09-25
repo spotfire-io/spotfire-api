@@ -72,11 +72,11 @@ export abstract class Pipeline<
   whereUnique = (
     obj: PrismaType | PrimsaCreateType | null
   ): PrismaWhereUniqueInput => {
-    if(obj) {
+    if (obj) {
       return <PrismaWhereUniqueInput>_.pick(obj, this.prismaKey);
     } else {
-      logger.error(`Could not search for undefined ${this.prismaKey}`)
-      throw new Error(`Could not search for undefined ${this.prismaKey}`)
+      logger.error(`Could not search for undefined ${this.prismaKey}`);
+      throw new Error(`Could not search for undefined ${this.prismaKey}`);
     }
   };
 
@@ -92,6 +92,8 @@ export abstract class Pipeline<
           const input = await this.mapToPrismaInput(spotifyHit);
           const upserted = await this.upsert(input);
           return this.whereUnique(upserted);
+        } else {
+          throw new Error(`Could not retrieve ${this.prismaKey} ${id}`);
         }
       }
       return undefined;
