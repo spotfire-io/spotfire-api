@@ -1,6 +1,6 @@
 image:
   repository: spotfire/spotfire-api
-  tag: d47af062d31b8c73632451e809098403beac52f5
+  tag: 0c12fb28804fd0d0503235c70055e8fadaa5af88
 prisma:
   host: prisma.spotfire.spantree.net
 spotfire_api:

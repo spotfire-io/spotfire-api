@@ -34,8 +34,8 @@ postgresql:
   enabled: true # Attach a dedicated Postgres instance
   persistence:
     enabled: true
-    {{ if eq .Environment.Name "dev" }}
-    postgresPassword: {{ .Environment.Values | get "postgres.password_unencrypted" | quote }}
-    {{ else }}
-    postgresPassword: {{ .Environment.Values | get "postgres.password" | quote }}
-    {{ end}}
+  {{ if eq .Environment.Name "dev" }}
+  postgresPassword: {{ .Environment.Values | get "postgres.password_unencrypted" | quote }}
+  {{ else }}
+  postgresPassword: {{ .Environment.Values | get "postgres.password" | quote }}
+  {{ end}}
