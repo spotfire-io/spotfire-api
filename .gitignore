@@ -3,3 +3,8 @@
 dist
 .env
 !.env.*.enc
+
+*.iml
+.idea
+node_modules
+src/generated

@@ -10,7 +10,7 @@
   "scripts": {
     "build": "rimraf dist generated && prisma generate && nexus-prisma-generate --output ./src/generated/nexus-prisma && tsc",
     "prisma-deploy": "prisma deploy --env-file .env.${NODE_ENV}",
-    "prisma-generate": "prisma generate --env-file .env.${NODE_ENV}",
+    "prisma-generate": "rimraf generated && prisma generate --env-file .env.${NODE_ENV} && nexus-prisma-generate --output ./src/generated/nexus-prisma",
     "prisma-playground": "prisma playground --env-file .env.${NODE_ENV}",
     "start": "ts-node src/index.ts",
     "dev": "ts-node-dev --transpileOnly ./src/index.ts",
