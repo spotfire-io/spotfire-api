@@ -20,8 +20,7 @@ releases:
     namespace: spotfire
     labels:
       layer: data
-    chart: stable/prisma
-    version: 1.2.1
+    chart: charts/prisma
     values:
     - values/prisma/values.yaml.gotmpl
   - name: spotfire-api

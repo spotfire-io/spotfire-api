@@ -21,6 +21,7 @@ helmDefaults:
   timeout: 600
   verify: false
   wait: true
+  historyMax: 10
 
 # ** does not seem to be accepted, and * does not recurse more than one level of
 # directory
