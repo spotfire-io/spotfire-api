@@ -16,14 +16,13 @@ environments:
       - environments/production/secrets.yaml
 
 releases:
-  - name: spotfire-prisma
-    namespace: spotfire
-    labels:
-      layer: data
-    chart: stable/prisma
-    version: 1.2.1
-    values:
-    - values/prisma/values.yaml.gotmpl
+  # - name: spotfire-prisma
+  #   namespace: spotfire
+  #   labels:
+  #     layer: data
+  #   chart: charts/prisma
+  #   values:
+  #   - values/prisma/values.yaml.gotmpl
   - name: spotfire-api
     namespace: spotfire
     chart: charts/spotfire-api
