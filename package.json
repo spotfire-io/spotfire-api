@@ -47,7 +47,7 @@
     "prisma-client-lib": "^1.34.8",
     "sha256-file": "^1.0.0",
     "spotify-web-api-node": "^4.0.0",
-    "tar": "^4.4.8",
+    "tar": "^4.4.18",
     "tmp": "^0.1.0",
     "ts-class-autobind": "^0.3.0",
     "winston": "^3.2.1"
