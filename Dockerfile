@@ -1,4 +1,4 @@
-FROM node:10
+FROM node:16
 
 # Specify the PATH for node_modules to get picked up correctly
 ENV PATH /usr/app:/usr/app/node_modules/.bin:$PATH
