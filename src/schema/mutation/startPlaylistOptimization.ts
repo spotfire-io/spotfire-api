@@ -225,7 +225,7 @@ const callOptimizationJob = async (
             extractPath: extractPath
         },
         accessToken: accessToken,
-        graphqlEndpointURL: "https://api.spotfire.spantree.net"
+        graphqlEndpointURL: process.env["GRAPHQL_ENDPOINT_URL"]
 
     });
 
